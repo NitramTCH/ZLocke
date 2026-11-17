@@ -228,6 +228,72 @@ export function intervalSpeed(p: Pokemon, policy: EvPolicy): IntervalSpeed {
     conditions: [...ref.conditions, ...model.assumptions],
   };
 }
+export interface OrderComparison {
+  relation: "own" | "rival" | "uncertain";
+  basis: "priority" | "speed" | "unknown";
+  text: string;
+  ownPriority: number | null;
+  rivalPriority: number | null;
+  ownSpeed?: IntervalSpeed;
+  rivalSpeed?: IntervalSpeed;
+}
+export function compareActionOrder(
+  a: Pokemon,
+  d: Pokemon,
+  am: Move,
+  dm: Move,
+  policy: EvPolicy,
+): OrderComparison {
+  const data = { ownPriority: am.priority, rivalPriority: dm.priority };
+  if (am.priority === null || dm.priority === null)
+    return {
+      ...data,
+      relation: "uncertain",
+      basis: "unknown",
+      text: "Orden no determinado: falta prioridad de uno de los movimientos seleccionados.",
+    };
+  if (am.priority !== dm.priority)
+    return {
+      ...data,
+      relation: am.priority > dm.priority ? "own" : "rival",
+      basis: "priority",
+      text: `Referencia por prioridad: ${am.priority > dm.priority ? "tu Pokémon" : "el rival"} actuaría antes (${am.priority} frente a ${dm.priority}).`,
+    };
+  const ownSpeed = intervalSpeed(a, policy),
+    rivalSpeed = intervalSpeed(d, policy);
+  const speeds = { ownSpeed, rivalSpeed };
+  if (!ownSpeed.ok || !rivalSpeed.ok)
+    return {
+      ...data,
+      ...speeds,
+      relation: "uncertain",
+      basis: "unknown",
+      text: "Misma prioridad; faltan datos para comparar velocidad efectiva.",
+    };
+  if (ownSpeed.min > rivalSpeed.max)
+    return {
+      ...data,
+      ...speeds,
+      relation: "own",
+      basis: "speed",
+      text: "Misma prioridad: tu Pokémon supera estrictamente todo el intervalo de velocidad rival.",
+    };
+  if (rivalSpeed.min > ownSpeed.max)
+    return {
+      ...data,
+      ...speeds,
+      relation: "rival",
+      basis: "speed",
+      text: "Misma prioridad: el rival supera estrictamente todo tu intervalo de velocidad.",
+    };
+  return {
+    ...data,
+    ...speeds,
+    relation: "uncertain",
+    basis: "speed",
+    text: "Misma prioridad: los intervalos se solapan o hay empate posible; el orden no queda determinado.",
+  };
+}
 export function intervalOrder(
   a: Pokemon,
   d: Pokemon,
@@ -235,19 +301,7 @@ export function intervalOrder(
   dm: Move,
   policy: EvPolicy,
 ): string {
-  if (am.priority === null || dm.priority === null)
-    return "Orden no determinado: falta prioridad de uno de los movimientos seleccionados.";
-  if (am.priority !== dm.priority)
-    return `Referencia por prioridad: ${am.priority > dm.priority ? "tu Pokémon" : "el rival"} actuaría antes (${am.priority} frente a ${dm.priority}).`;
-  const av = intervalSpeed(a, policy),
-    dv = intervalSpeed(d, policy);
-  if (!av.ok || !dv.ok)
-    return "Misma prioridad; faltan datos para comparar velocidad efectiva.";
-  if (av.min > dv.max)
-    return "Misma prioridad: tu Pokémon supera estrictamente todo el intervalo de velocidad rival.";
-  if (dv.min > av.max)
-    return "Misma prioridad: el rival supera estrictamente todo tu intervalo de velocidad.";
-  return "Misma prioridad: los intervalos se solapan o hay empate posible; el orden no queda determinado.";
+  return compareActionOrder(a, d, am, dm, policy).text;
 }
 
 // Caché acotada por atacante; la clave incluye todos los datos, también para

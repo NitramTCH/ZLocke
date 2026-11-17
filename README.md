@@ -36,6 +36,14 @@ El workflow `.github/workflows/pages.yml` se conserva: prueba, compila con `--ba
 - **Tipos:** «Sin segundo tipo» confirma monotipo; «Segundo tipo desconocido» impide una efectividad exacta dependiente de él.
 - **Demostración:** datos ficticios, identificados y editables, con confirmación antes de reemplazar la partida.
 
+## Resumen táctico explicativo
+
+En Combate, debajo del selector del activo, el resumen determinista organiza **Panorama, Ataques, Amenazas, Cambios y Datos y límites**. Reutiliza daño, velocidad e hipótesis de entrada existentes; no utiliza IA externa ni simula varios turnos. Ordenación opcional por daño propio o peor máximo recibido, con cobertura y advertencias explícitas. Estado y efectos no calculables siguen visibles sin puntuar utilidad. Los movimientos sin revelar nunca se completan por especie y los PS desconocidos no implican salud completa.
+
+El orden del par seleccionado se sincroniza con la comparación detallada; cada ataque propio también muestra los pares frente a los movimientos rivales revelados. Al cambiar normalmente se recibe el ataque: la velocidad del compañero no evita ese golpe. No se califican cambios seguros ni se anuncia victoria o estrategia óptima.
+
+[Reglas de interpretación, fuentes de cada explicación y ejemplos de prueba](docs/TACTICS.md). No se cambia el esquema de guardado: sigue v5, con importación/exportación y respaldos existentes. Las naturalezas estándar no se modifican por observaciones de Añil.
+
 ## Estadísticas y supuestos predeterminados
 
 El perfil sigue siendo **Reglas estándar de generación IX**, una referencia que no garantiza compatibilidad con fangames.
@@ -61,7 +69,7 @@ Motor de producción **@smogon/calc 0.12.0**, con adaptador de estadísticas fin
 - Tabla de 18 tipos y STAB base se muestran separados de inmunidades/modificadores por habilidad u objeto. Los cambios defensivos distinguen activo y entrada, reinician etapas en una copia y declaran efectos de entrada no simulados.
 - Excluidos: potencia variable, daño fijo/proporcional/de respuesta, impactos múltiples, críticos, estadísticas alternativas de ciertos movimientos, clima, terreno, pantallas, teracristalización y efectos especiales no verificados. No se amplía el conjunto de movimientos calculables en esta fase.
 - Nivel 1–100, potencia 1–250 y estadísticas de ficha 1–999 dentro del alcance de daño validado. Intervalos que puedan llegar a desbordamientos se rechazan y piden estrechar supuestos. Las bases personalizadas pueden producir una ficha válida pero fuera de este alcance del motor.
-- No se consumen objetos, curan/restan PS ni cambian etapas al consultar. No se presenta el mayor daño como «mejor jugada». No hay asesor estratégico ni importación Showdown.
+- No se consumen objetos, curan/restan PS ni cambian etapas al consultar. No se presenta el mayor daño como «mejor jugada». Hay un resumen explicativo determinista, sin optimización estratégica ni importación Showdown.
 
 ## Cómo probar esta fase
 
@@ -86,6 +94,7 @@ Se guardan modos, parámetros, bases personalizadas, intervalos, política EV, r
 - `src/battle.ts`, `src/statTypes.ts`: modelo, validación y migración.
 - `src/stats.ts`, `src/uncertainty.ts`: fórmulas de ficha, escenarios legales e intervalos de combate.
 - `src/damage.ts`, `src/calcAdapter.ts`, `src/effects.ts`, `src/speed.ts`: motor compatible, dependencias y efectos.
+- `src/tactics.ts`, `src/TacticalSummary.tsx`, `src/entry.ts`: interpretación determinista, presentación y escenario compartido de entrada.
 - `src/StatsEditor.tsx`, `src/ScenarioView.tsx`, `src/Editor.tsx`: modos, parámetros y edición.
 - `src/data/`, `scripts/`: catálogos reproducibles de revisión fija.
 - `src/*.test.ts`, `tests/`: regresiones, contraste con Smogon y flujos de navegador en ordenador/móvil.

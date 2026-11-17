@@ -1,19 +1,8 @@
-import { type Pokemon, type Move, newStages } from "./battle";
+import { type Pokemon, type Move } from "./battle";
 import type { EvPolicy } from "./statTypes";
 import { intervalDamage } from "./uncertainty";
-import { effectEntry } from "./effects";
-export function entryScenario(p: Pokemon): Pokemon {
-  const slug = effectEntry(p, "ability")?.slug;
-  return {
-    ...p,
-    stages: newStages(),
-    abilityActivation: ["unburden", "flash-fire"].includes(slug || "")
-      ? "inactive"
-      : slug === "slow-start"
-        ? "unknown"
-        : p.abilityActivation,
-  };
-}
+import { entryScenario } from "./entry";
+export { entryScenario } from "./entry";
 export function DefensiveCell({
   attacker,
   defender,

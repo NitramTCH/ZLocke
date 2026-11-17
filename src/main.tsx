@@ -15,6 +15,7 @@ import {
   moveFactor,
 } from "./battle";
 import "./style.css";
+import { TacticalSummary } from "./TacticalSummary";
 import { statModel } from "./stats";
 import { DefensiveCell } from "./DefensiveCell";
 import { SpeedPanel } from "./SpeedPanel";
@@ -56,6 +57,9 @@ function App() {
   const [message, setMessage] = useState(boot.error);
   const [tab, setTab] = useState("Combate");
   const [save, setSave] = useState("");
+  const [moveSelection, setMoveSelection] = useState<[number, number]>([0, 0]);
+  const selectMoves = (own: number, rival: number) =>
+    setMoveSelection([own, rival]);
   const [saveBlocked, setSaveBlocked] = useState(!!boot.error);
   const file = useRef<HTMLInputElement>(null);
   const active = s.team.find((p) => p.id === s.activeId)!;
@@ -281,6 +285,13 @@ function App() {
                 )}
               </div>
             </section>
+            {tab === "Combate" && (
+              <TacticalSummary
+                session={s}
+                selection={moveSelection}
+                onSelection={selectMoves}
+              />
+            )}
             <div className={tab === "Equipo" ? "team-editor" : "editors"}>
               <section className="panel">
                 <div className="section-title">
@@ -445,6 +456,8 @@ function App() {
                     active={active}
                     rival={s.rival}
                     policy={s.evPolicy}
+                    selection={moveSelection}
+                    onSelection={selectMoves}
                   />
                 </div>
                 <article className="panel defense">

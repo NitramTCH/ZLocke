@@ -810,3 +810,117 @@ nav {
 .stat-table abbr {
   text-decoration: none;
 }
+.tactical-summary {
+  margin: 0 0 26px;
+  border-top: 2px solid #ed394b;
+}
+.tactical-summary h2 {
+  margin-top: 7px;
+}
+.tactical-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 20px;
+}
+.tactical-tabs button[aria-pressed="true"] {
+  background: #42232d;
+  border-color: #e44c60;
+}
+.tactical-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.tactical-overview > article,
+.tactical-order,
+.tactical-card {
+  background: #131419;
+  border: 1px solid #303139;
+  border-radius: 7px;
+  padding: 16px;
+  min-width: 0;
+}
+.tactical-order {
+  margin-bottom: 14px;
+}
+.tactical-summary h3 {
+  font-size: 16px;
+  margin: 6px 0 12px;
+}
+.tactical-summary li {
+  font-size: 12px;
+  line-height: 1.75;
+  color: #b3b4c0;
+}
+.tactical-summary ul {
+  padding-left: 20px;
+}
+.tactical-summary p {
+  margin: 10px 0;
+}
+.tactical-speeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 12px 0;
+}
+.tactical-speeds > div {
+  min-width: 100px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tactical-speeds strong {
+  font-size: 22px;
+}
+.tactical-card {
+  margin: 14px 0;
+}
+.tactical-card > small {
+  display: block;
+  line-height: 1.8;
+}
+.tactical-summary .tactical-explanation,
+.tactical-important {
+  color: #e2d2d7;
+}
+.tactical-damage {
+  color: #92d7b2;
+  font-size: 22px;
+  display: block;
+  margin: 10px 0;
+}
+.tactical-card details {
+  padding: 10px 0;
+}
+.tactical-summary details p {
+  font-size: 12px;
+}
+.tactical-overview > article p,
+.tactical-card p,
+.tactical-summary h3 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .tactical-overview {
+    grid-template-columns: 1fr;
+  }
+  .tactical-summary {
+    padding: 16px;
+  }
+  .tactical-card,
+  .tactical-order {
+    padding: 12px;
+  }
+  .tactical-tabs {
+    gap: 6px;
+  }
+  .tactical-tabs button {
+    padding: 10px;
+  }
+  .tactical-summary .section-title {
+    flex-wrap: wrap;
+  }
+}

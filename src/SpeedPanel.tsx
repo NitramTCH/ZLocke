@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Pokemon } from "./battle";
 import type { EvPolicy } from "./statTypes";
 import { intervalSpeed, intervalOrder } from "./uncertainty";
@@ -6,13 +5,16 @@ export function SpeedPanel({
   active,
   rival,
   policy,
+  selection,
+  onSelection,
 }: {
   active: Pokemon;
   rival: Pokemon;
   policy: EvPolicy;
+  selection: [number, number];
+  onSelection: (own: number, rival: number) => void;
 }) {
-  const [own, setOwn] = useState(0),
-    [enemy, setEnemy] = useState(0);
+  const [own, enemy] = selection;
   return (
     <article className="panel">
       <div className="eyebrow">VELOCIDAD Y ORDEN</div>
@@ -69,7 +71,7 @@ export function SpeedPanel({
           <select
             aria-label="Tu movimiento para orden"
             value={own}
-            onChange={(e) => setOwn(Number(e.target.value))}
+            onChange={(e) => onSelection(Number(e.target.value), enemy)}
           >
             {active.moves.map((m, i) => (
               <option key={i} value={i}>
@@ -84,7 +86,7 @@ export function SpeedPanel({
           <select
             aria-label="Movimiento rival para orden"
             value={enemy}
-            onChange={(e) => setEnemy(Number(e.target.value))}
+            onChange={(e) => onSelection(own, Number(e.target.value))}
           >
             {rival.moves.map((m, i) => (
               <option key={i} value={i}>
