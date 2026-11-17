@@ -41,6 +41,24 @@ const rows = [
   "1 .5 1 1 1 1 2 .5 1 1 1 1 1 1 2 2 .5 1",
 ];
 export const CHART = rows.map((row) => row.split(" ").map(Number));
+export type StageKey =
+  "attack" | "defense" | "spAttack" | "spDefense" | "speed";
+export const STAGE_KEYS: StageKey[] = [
+  "attack",
+  "defense",
+  "spAttack",
+  "spDefense",
+  "speed",
+];
+export const newStages = (
+  value: number | null = 0,
+): Record<StageKey, number | null> => ({
+  attack: value,
+  defense: value,
+  spAttack: value,
+  spDefense: value,
+  speed: value,
+});
 export interface Move {
   name: string;
   type: Type | "";
@@ -51,6 +69,7 @@ export interface Move {
   accuracyMode: "unknown" | "number" | "special";
   priority: number | null;
   source: string;
+  damageKind: "unknown" | "direct" | "special";
 }
 export interface Pokemon {
   id: string;
@@ -69,10 +88,15 @@ export interface Pokemon {
   speed: number | null;
   ability: string;
   item: string;
+  abilityState: "unknown" | "none" | "known";
+  itemState: "unknown" | "none" | "known";
+  stages: Record<StageKey, number | null>;
+  burn: "unknown" | "none" | "burned";
   moves: Move[];
 }
 export interface Session {
-  version: 2;
+  version: 3;
+  rules: "gen9-standard";
   demo: boolean;
   team: Pokemon[];
   rival: Pokemon;
@@ -95,6 +119,10 @@ export const blankPokemon = (): Pokemon => ({
   speed: null,
   ability: "",
   item: "",
+  abilityState: "unknown",
+  itemState: "unknown",
+  stages: newStages(),
+  burn: "unknown",
   moves: Array.from({ length: 4 }, () => ({
     name: "",
     type: "",
@@ -105,6 +133,7 @@ export const blankPokemon = (): Pokemon => ({
     accuracyMode: "unknown",
     priority: null,
     source: "",
+    damageKind: "unknown",
   })),
 });
 export function effectiveness(
@@ -137,7 +166,8 @@ export function speedOrder(a: number | null, b: number | null): string {
 export function newSession(): Session {
   const p = blankPokemon();
   return {
-    version: 2,
+    version: 3,
+    rules: "gen9-standard",
     demo: false,
     team: [p],
     rival: blankPokemon(),
@@ -202,8 +232,51 @@ export function demoSession(): Session {
           accuracyMode: "unknown",
           priority: null,
           source: "",
+          damageKind: "unknown",
         }) as Move,
     );
+  // Valores ficticios explícitos para demostrar ambos sentidos del daño.
+  Object.assign(s.rival, {
+    level: 32,
+    hp: 95,
+    maxHp: 120,
+    attack: 80,
+    defense: 72,
+    spAttack: 70,
+    spDefense: 64,
+  });
+  for (const p of [...s.team, s.rival]) {
+    p.burn = "none";
+    p.stages = newStages();
+  }
+  const demoMoves = [
+    { power: 90, powerMode: "number", damageKind: "direct" },
+    { power: 90, powerMode: "number", damageKind: "direct" },
+    { power: 75, powerMode: "number", damageKind: "direct" },
+    { power: null, powerMode: "status", damageKind: "special" },
+  ] as const;
+  s.team[0].moves = s.team[0].moves.map((m, i) => ({
+    ...m,
+    ...demoMoves[i],
+    accuracy: i === 3 ? null : 100,
+    accuracyMode: i === 3 ? "special" : "number",
+    priority: i === 3 ? 4 : 0,
+    source: "Demostración ficticia",
+  }));
+  s.rival.moves = s.rival.moves.map((m, i) =>
+    i < 2
+      ? {
+          ...m,
+          power: i === 0 ? 100 : 90,
+          powerMode: "number",
+          damageKind: "direct",
+          accuracy: 100,
+          accuracyMode: "number",
+          priority: 0,
+          source: "Demostración ficticia",
+        }
+      : m,
+  );
   s.demo = true;
   return s;
 }
@@ -226,6 +299,14 @@ export function parseSession(text: string): Session {
         (!p.typesKnown || p.secondType !== "unknown"))) &&
     typeof p.ability === "string" &&
     typeof p.item === "string" &&
+    (s.version < 3 ||
+      (["unknown", "none", "known"].includes(p.abilityState) &&
+        ["unknown", "none", "known"].includes(p.itemState) &&
+        ["unknown", "none", "burned"].includes(p.burn) &&
+        !!p.stages &&
+        STAGE_KEYS.every((k) => integer(p.stages[k], -6, 6)) &&
+        (p.abilityState !== "known" || p.ability.trim().length > 0) &&
+        (p.itemState !== "known" || p.item.trim().length > 0))) &&
     typeof p.typesKnown === "boolean" &&
     Array.isArray(p.types) &&
     p.types.length <= 2 &&
@@ -265,6 +346,8 @@ export function parseSession(text: string): Session {
             integer(m.accuracy, 1, 100) &&
             integer(m.priority, -7, 7) &&
             typeof m.source === "string" &&
+            (s.version < 3 ||
+              ["unknown", "direct", "special"].includes(m.damageKind)) &&
             ["unknown", "number", "variable", "fixed", "status"].includes(
               m.powerMode,
             ) &&
@@ -274,7 +357,8 @@ export function parseSession(text: string): Session {
     );
   if (
     !s ||
-    ![1, 2].includes(s.version) ||
+    ![1, 2, 3].includes(s.version) ||
+    (s.version === 3 && s.rules !== "gen9-standard") ||
     typeof s.demo !== "boolean" ||
     !Array.isArray(s.team) ||
     s.team.length < 1 ||
@@ -285,7 +369,7 @@ export function parseSession(text: string): Session {
     !s.team.some((p: Pokemon) => p.id === s.activeId)
   )
     throw new Error(
-      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1 y 2).",
+      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1, 2 y 3).",
     );
   if (s.version === 1) {
     const migrate = (p: Pokemon): Pokemon => ({
@@ -303,11 +387,24 @@ export function parseSession(text: string): Session {
         source: "",
       })),
     });
+    s.team = s.team.map(migrate);
+    s.rival = migrate(s.rival);
+  }
+  if (s.version < 3) {
+    const migrateDamage = (p: Pokemon): Pokemon => ({
+      ...p,
+      abilityState: "unknown",
+      itemState: "unknown",
+      stages: newStages(null),
+      burn: "unknown",
+      moves: p.moves.map((m) => ({ ...m, damageKind: "unknown" })),
+    });
     return {
       ...s,
-      version: 2,
-      team: s.team.map(migrate),
-      rival: migrate(s.rival),
+      version: 3,
+      rules: "gen9-standard",
+      team: s.team.map(migrateDamage),
+      rival: migrateDamage(s.rival),
     };
   }
   return s;

@@ -16,6 +16,8 @@ import {
   moveFactor,
 } from "./battle";
 import "./style.css";
+import { DamagePanel } from "./DamagePanel";
+import { BattleConditions } from "./BattleConditions";
 import { Editor, QuickStats } from "./Editor";
 import { CATALOG_VERSION, powerLabel } from "./catalog";
 const KEY = "zlocke-session-v1";
@@ -25,10 +27,16 @@ function initial() {
     const session = raw ? parseSession(raw) : newSession();
     if (
       raw &&
-      JSON.parse(raw).version === 1 &&
+      JSON.parse(raw).version < 3 &&
       !localStorage.getItem(`${KEY}-backup`)
     )
       localStorage.setItem(`${KEY}-backup`, raw);
+    if (
+      raw &&
+      JSON.parse(raw).version < 3 &&
+      !localStorage.getItem(`${KEY}-backup-v${JSON.parse(raw).version}`)
+    )
+      localStorage.setItem(`${KEY}-backup-v${JSON.parse(raw).version}`, raw);
     return { session, error: "" };
   } catch {
     return {
@@ -265,6 +273,11 @@ function App() {
                     <button onClick={() => setTab("Equipo")}>
                       Editar Pokémon en Equipo
                     </button>
+                    <BattleConditions
+                      p={active}
+                      onChange={(p) => update(p)}
+                      label="Tu Pokémon"
+                    />
                     <div className="battle-moves">
                       {active.moves.map((m, i) => (
                         <div key={i}>
@@ -302,6 +315,7 @@ function App() {
                 </section>
               )}
             </div>
+            {tab === "Combate" && <DamagePanel session={s} />}
             {tab === "Combate" && (
               <section className="analysis">
                 <div className="section-title">
@@ -518,9 +532,9 @@ function App() {
             </p>
             <h3>Lo que vendrá después</h3>
             <p>
-              Cálculo completo de daño, reglas por juego, habilidades, objetos,
-              prioridad y efectos de campo. Esta versión no integra Pokelocke ni
-              recomienda automáticamente una mejor jugada.
+              Ampliación del cálculo de daño, reglas por juego, habilidades,
+              objetos, prioridad y efectos de campo. Esta versión no integra
+              Pokelocke ni recomienda automáticamente una mejor jugada.
             </p>
             <h3>Tus datos se quedan aquí</h3>
             <p>

@@ -8,7 +8,7 @@ export interface SpeciesEntry {
   name: string;
   types: Type[];
 }
-export interface MoveEntry extends Omit<Move, "source"> {
+export interface MoveEntry extends Omit<Move, "source" | "damageKind"> {
   id: number;
 }
 export const SPECIES = speciesData as SpeciesEntry[];
@@ -44,9 +44,24 @@ export function selectSpecies(p: Pokemon, entry: SpeciesEntry): Pokemon {
     secondType: entry.types.length === 1 ? "none" : "known",
   };
 }
+// Ataques de un impacto cuya potencia fija y estadísticas usadas son ordinarias.
+// Los efectos secundarios y posteriores al golpe no se simulan.
+export const SIMPLE_MOVE_IDS = new Set([
+  1, 5, 7, 8, 9, 10, 11, 15, 17, 22, 25, 29, 33, 34, 44, 52, 53, 55, 56, 57, 58,
+  59, 60, 61, 65, 70, 71, 72, 84, 85, 87, 89, 93, 94, 98, 123, 126, 127, 129,
+  145, 157, 158, 172, 188, 196, 202, 209, 225, 247, 249, 337, 352, 399, 403,
+  414, 430, 442, 482, 583, 585, 605,
+]);
 export function selectMove(entry: MoveEntry): Move {
   const { id, ...data } = entry;
-  return { ...data, source: `${CATALOG_VERSION} · movimiento #${id}` };
+  return {
+    ...data,
+    damageKind:
+      SIMPLE_MOVE_IDS.has(id) && data.powerMode === "number"
+        ? "direct"
+        : "special",
+    source: `${CATALOG_VERSION} · movimiento #${id}`,
+  };
 }
 export function powerLabel(m: Move): string {
   return m.category === "Estado"

@@ -7,6 +7,7 @@ import {
   selectMove,
   powerLabel,
 } from "./catalog";
+import { BattleConditions } from "./BattleConditions";
 import { Search } from "./Search";
 type Props = {
   p: Pokemon;
@@ -89,18 +90,56 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
       <div className="fields">
         <label>
           Habilidad
+          <select
+            aria-label={`${label} estado habilidad`}
+            value={p.abilityState}
+            onChange={(e) =>
+              set({ abilityState: e.target.value as Pokemon["abilityState"] })
+            }
+          >
+            <option value="unknown">Desconocida</option>
+            <option value="none">Ausencia confirmada / anulada</option>
+            <option value="known" disabled={!p.ability.trim()}>
+              Indicada (efecto omitido)
+            </option>
+          </select>
           <input
+            disabled={p.abilityState === "none"}
             value={p.ability}
             placeholder="Desconocida"
-            onChange={(e) => set({ ability: e.target.value })}
+            onChange={(e) =>
+              set({
+                ability: e.target.value,
+                abilityState: e.target.value.trim() ? "known" : "unknown",
+              })
+            }
           />
         </label>
         <label>
           Objeto
+          <select
+            aria-label={`${label} estado objeto`}
+            value={p.itemState}
+            onChange={(e) =>
+              set({ itemState: e.target.value as Pokemon["itemState"] })
+            }
+          >
+            <option value="unknown">Desconocido</option>
+            <option value="none">Sin objeto confirmado</option>
+            <option value="known" disabled={!p.item.trim()}>
+              Indicado (efecto omitido)
+            </option>
+          </select>
           <input
+            disabled={p.itemState === "none"}
             value={p.item}
             placeholder="Desconocido"
-            onChange={(e) => set({ item: e.target.value })}
+            onChange={(e) =>
+              set({
+                item: e.target.value,
+                itemState: e.target.value.trim() ? "known" : "unknown",
+              })
+            }
           />
         </label>
       </div>
@@ -218,6 +257,7 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
         </p>
       )}
       <QuickStats p={p} onChange={onChange} label={label} />
+      <BattleConditions p={p} onChange={onChange} label={label} />
       {compact ? (
         <details>
           <summary>
@@ -243,9 +283,10 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
         />
       ))}
       <div className="footnote">
-        {CATALOG_VERSION}. Potencia, precisión y prioridad se guardan para
-        consulta; no calculan daño ni orden de acción. Los efectos y cambios
-        dinámicos de tipo no se aplican.
+        {CATALOG_VERSION}. La predicción usa potencia fija solo en ataques
+        simples confirmados. Precisión y prioridad se mantienen separadas del
+        daño y del orden. Los efectos especiales y cambios dinámicos de tipo no
+        se aplican.
       </div>
     </div>
   );
@@ -306,13 +347,39 @@ function MoveEditor({
         label={`${label}: buscar movimiento`}
         onSelect={(entry) => onChange(selectMove(entry))}
       />
+      <label>
+        Comportamiento para el motor
+        <select
+          aria-label={`${label} comportamiento daño`}
+          value={m.damageKind}
+          onChange={(e) =>
+            set({ damageKind: e.target.value as Move["damageKind"] })
+          }
+        >
+          <option value="unknown">Sin verificar</option>
+          <option value="special">
+            Efectos especiales / fuera del alcance
+          </option>
+          <option value="direct">
+            Confirmo: daño directo simple, un impacto
+          </option>
+        </select>
+      </label>
+      <small>
+        Confirmar manualmente es declarar que el movimiento no cambia las
+        estadísticas usadas ni tiene potencia, tipo o número de impactos
+        dinámicos. Estado y potencia variable/fija especial siguen sin
+        calcularse.
+      </small>
       <div className="fields">
         <label>
           Nombre manual
           <input
             aria-label={`${label} nombre manual`}
             value={m.name}
-            onChange={(e) => set({ name: e.target.value })}
+            onChange={(e) =>
+              set({ name: e.target.value, damageKind: "unknown" })
+            }
           />
         </label>
         <label>

@@ -1,0 +1,249 @@
+{
+  "version": 3,
+  "demo": true,
+  "team": [
+    {
+      "id": "b0d19c66-ba9c-41fa-abb7-36c59a182344",
+      "name": "Volt · ejemplo",
+      "types": [
+        "Fuego"
+      ],
+      "typesKnown": true,
+      "level": 50,
+      "hp": 74,
+      "maxHp": 90,
+      "attack": 100,
+      "defense": 58,
+      "spAttack": 120,
+      "spDefense": 63,
+      "speed": 96,
+      "ability": "Desconocida",
+      "item": "Sin confirmar",
+      "moves": [
+        {
+          "name": "Golpe manual",
+          "type": "Fuego",
+          "category": "Físico",
+          "power": 80,
+          "powerMode": "number",
+          "accuracy": 85,
+          "accuracyMode": "number",
+          "priority": null,
+          "source": "",
+          "damageKind": "direct"
+        },
+        {
+          "name": "Surf",
+          "type": "Agua",
+          "category": "Especial",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        },
+        {
+          "name": "Puño hielo",
+          "type": "Hielo",
+          "category": "Físico",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        },
+        {
+          "name": "Protección",
+          "type": "Normal",
+          "category": "Estado",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        }
+      ],
+      "species": "",
+      "secondType": "none",
+      "abilityState": "unknown",
+      "itemState": "unknown",
+      "stages": {
+        "attack": 0,
+        "defense": 0,
+        "spAttack": 0,
+        "spDefense": 0,
+        "speed": 0
+      },
+      "burn": "none"
+    },
+    {
+      "id": "01133c2f-52c6-455a-9b37-eb222e3334d9",
+      "name": "Brasa · ejemplo",
+      "types": [
+        "Fuego",
+        "Volador"
+      ],
+      "typesKnown": true,
+      "level": null,
+      "hp": 86,
+      "maxHp": 100,
+      "attack": null,
+      "defense": null,
+      "spAttack": null,
+      "spDefense": null,
+      "speed": 75,
+      "ability": "",
+      "item": "",
+      "moves": [
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida",
+          "power": null,
+          "powerMode": "unknown",
+          "accuracy": null,
+          "accuracyMode": "unknown",
+          "priority": null,
+          "source": "",
+          "damageKind": "unknown"
+        }
+      ],
+      "species": "",
+      "secondType": "known",
+      "abilityState": "unknown",
+      "itemState": "unknown",
+      "stages": {
+        "attack": 0,
+        "defense": 0,
+        "spAttack": 0,
+        "spDefense": 0,
+        "speed": 0
+      },
+      "burn": "none"
+    }
+  ],
+  "rival": {
+    "id": "c42b935e-85dc-4a68-b688-fccbf54ab7b7",
+    "name": "Rival · ejemplo",
+    "types": [
+      "Planta"
+    ],
+    "typesKnown": true,
+    "level": 50,
+    "hp": 100,
+    "maxHp": 200,
+    "attack": 80,
+    "defense": 100,
+    "spAttack": 80,
+    "spDefense": 100,
+    "speed": null,
+    "ability": "",
+    "item": "",
+    "moves": [
+      {
+        "name": "Rayo rival",
+        "type": "Eléctrico",
+        "category": "Especial",
+        "power": 90,
+        "powerMode": "number",
+        "accuracy": 100,
+        "accuracyMode": "number",
+        "priority": null,
+        "source": "",
+        "damageKind": "direct"
+      },
+      {
+        "name": "Rayo hielo",
+        "type": "Hielo",
+        "category": "Especial",
+        "power": null,
+        "powerMode": "unknown",
+        "accuracy": null,
+        "accuracyMode": "unknown",
+        "priority": null,
+        "source": "",
+        "damageKind": "unknown"
+      },
+      {
+        "name": "",
+        "type": "",
+        "category": "Desconocida",
+        "power": null,
+        "powerMode": "unknown",
+        "accuracy": null,
+        "accuracyMode": "unknown",
+        "priority": null,
+        "source": "",
+        "damageKind": "unknown"
+      },
+      {
+        "name": "",
+        "type": "",
+        "category": "Desconocida",
+        "power": null,
+        "powerMode": "unknown",
+        "accuracy": null,
+        "accuracyMode": "unknown",
+        "priority": null,
+        "source": "",
+        "damageKind": "unknown"
+      }
+    ],
+    "species": "",
+    "secondType": "none",
+    "abilityState": "unknown",
+    "itemState": "unknown",
+    "stages": {
+      "attack": 0,
+      "defense": 0,
+      "spAttack": 0,
+      "spDefense": 0,
+      "speed": 0
+    },
+    "burn": "none"
+  },
+  "activeId": "b0d19c66-ba9c-41fa-abb7-36c59a182344",
+  "rules": "gen9-standard"
+}
