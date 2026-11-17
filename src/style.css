@@ -996,3 +996,44 @@ nav {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.recommendation-card {
+  border: 1px solid #f33255;
+  border-radius: 0.7rem;
+  padding: 1.1rem;
+  margin-block: 1rem 1.5rem;
+  background: #22191e;
+  overflow-wrap: anywhere;
+}
+.recommendation-card h4 {
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+.recommendation-card h5 {
+  font-size: 1rem;
+}
+.recommendation-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.recommendation-card select {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+.recommendation-card p,
+.recommendation-card li {
+  line-height: 1.6;
+}
+.recommendation-card details {
+  margin-block: 0.7rem;
+}
+.recommendation-route {
+  border-left: 2px solid #777;
+  padding-left: 0.8rem;
+  margin-block: 1rem;
+}
+.recommendation-risk {
+  color: #ffd1c4;
+}

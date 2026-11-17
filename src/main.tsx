@@ -644,7 +644,8 @@ function App() {
             <p>
               Ampliación del cálculo de daño, reglas por juego, habilidades,
               objetos, prioridad y efectos de campo. Esta versión no integra
-              Pokelocke ni recomienda automáticamente una mejor jugada.
+              Pokelocke. Ofrece sugerencias provisionales con criterios
+              explícitos; no afirma una estrategia óptima.
             </p>
             <h3>Tus datos se quedan aquí</h3>
             <p>

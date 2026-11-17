@@ -1,3 +1,4 @@
+import { RecommendationCard } from "./RecommendationCard";
 import { useMemo, useState } from "react";
 import { displayName, type Session, type Pokemon } from "./battle";
 import { currentHp } from "./stats";
@@ -67,11 +68,12 @@ export function TacticalSummary({
     <section className="panel tactical-summary" aria-label="Resumen táctico">
       <div className="section-title">
         <div>
-          <div className="eyebrow">LECTURA EXPLICADA · UN GOLPE</div>
+          <div className="eyebrow">LECTURA EXPLICADA · INDIVIDUALES</div>
           <h2>Resumen del enfrentamiento</h2>
         </div>
         <small>{RULES_LABEL}</small>
       </div>
+      <RecommendationCard session={s} />
       <p>
         {displayName(model.active)} frente a {displayName(model.rival)} ·
         Atacante propio {modeName(model.active)} · Rival {modeName(model.rival)}
@@ -340,11 +342,12 @@ export function TacticalSummary({
         </>
       )}
       <div className="footnote">
-        Lectura determinista de los cálculos existentes; sin IA externa ni
-        simulación de varios turnos. No anuncia victoria ni una estrategia
-        óptima. Cada referencia depende de los datos y efectos contemplados;
-        precisión, azar del daño e incertidumbre estadística se mantienen
-        separados. No se consumen objetos ni se modifican PS o etapas.
+        Lectura determinista de los cálculos existentes; sin IA externa. La
+        sugerencia añade solo una evaluación acotada de entrada e intercambio
+        siguiente, sin simulación completa. No anuncia victoria ni una
+        estrategia óptima. Cada referencia depende de los datos y efectos
+        contemplados; precisión, azar del daño e incertidumbre estadística se
+        mantienen separados. No se consumen objetos ni se modifican PS o etapas.
         Prioridad/velocidad excluyen Espacio Raro, Viento Afín y otras
         excepciones ya documentadas. Perfil de generación IX de referencia, sin
         garantía de compatibilidad con fangames.

@@ -69,7 +69,7 @@ Motor de producción **@smogon/calc 0.12.0**, con adaptador de estadísticas fin
 - Tabla de 18 tipos y STAB base se muestran separados de inmunidades/modificadores por habilidad u objeto. Los cambios defensivos distinguen activo y entrada, reinician etapas en una copia y declaran efectos de entrada no simulados.
 - Excluidos: potencia variable, daño fijo/proporcional/de respuesta, impactos múltiples, críticos, estadísticas alternativas de ciertos movimientos, clima, terreno, pantallas, teracristalización y efectos especiales no verificados. No se amplía el conjunto de movimientos calculables en esta fase.
 - Nivel 1–100, potencia 1–250 y estadísticas de ficha 1–999 dentro del alcance de daño validado. Intervalos que puedan llegar a desbordamientos se rechazan y piden estrechar supuestos. Las bases personalizadas pueden producir una ficha válida pero fuera de este alcance del motor.
-- No se consumen objetos, curan/restan PS ni cambian etapas al consultar. No se presenta el mayor daño como «mejor jugada». Hay un resumen explicativo determinista, sin optimización estratégica ni importación Showdown.
+- No se consumen objetos, curan/restan PS ni cambian etapas al consultar. No se presenta el mayor daño como «mejor jugada». Hay un resumen explicativo, sugerencias deterministas acotadas e importación Showdown; no se afirma estrategia óptima.
 
 ## Cómo probar esta fase
 
@@ -104,3 +104,9 @@ Se guardan modos, parámetros, bases personalizadas, intervalos, política EV, r
 Pulsa **Importar Showdown**, carga el TXT de Añil o pega el equipo y revisa la vista previa. Confirma los niveles, elige explícitamente conservar los EV o ponerlos a cero y corrige/excluye las entradas pendientes. Puedes reemplazar con respaldo descargable o añadir sin cambiar el rival ni la configuración. Los PS actuales quedan desconocidos salvo que marques **Equipo a PS completos**, que solo rellena máximos exactos.
 
 Se conservan especie/apodo, movimientos, habilidad/objeto, naturaleza, IV/EV, sexo, shiny, felicidad y procedencia en JSON v5. Formas no reconocidas, parámetros ilegales y efectos no compatibles se señalan; no se sustituyen ni normalizan. Consulta [convenciones, fuentes, formato de ejemplo y limitaciones](docs/SHOWDOWN.md).
+
+## Sugerencia de ZLocke
+
+Al inicio del resumen de **Combate**, la tarjeta ofrece una acción provisional con razones, riesgo, hasta dos alternativas y cálculos desplegables. Indica **cambio voluntario** o **entrada libre tras debilitamiento**. Se prioriza evitar KO dentro del alcance, se conserva el activo si ya evita ese riesgo y se compara daño/precisión/orden por dominancia, sin puntuación combinada. Si no hay base para elegir, muestra alternativas y datos necesarios; solo tipos no implica daño ni supervivencia.
+
+Para cambios, distingue entrada, llegar a responder y sobrevivir al intercambio siguiente. Las rutas posteriores requieren fichas Manual/Calculado y transiciones compatibles; no se mezclan extremos de escenarios estimados. Consulta [criterios, límites y ejemplos](docs/RECOMMENDATIONS.md). No cambia guardados v5 ni modifica datos al consultar.

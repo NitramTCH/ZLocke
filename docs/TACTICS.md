@@ -1,5 +1,7 @@
 # Resumen táctico explicativo
 
+La tarjeta **Sugerencia de ZLocke** añade ahora una evaluación acotada de entrada e intercambio siguiente: véase [RECOMMENDATIONS.md](RECOMMENDATIONS.md). Las pestañas detalladas descritas aquí conservan su alcance original de un golpe; no son una simulación completa.
+
 Zona visible de **Combate**, bajo el selector del activo. Es una lectura determinista de los motores existentes, sin API de IA, nuevos sets de especie ni fórmulas alternativas. Perfil visible: **Reglas estándar de generación IX**, de referencia y sin garantía de compatibilidad con fangames.
 
 ## Qué se muestra
