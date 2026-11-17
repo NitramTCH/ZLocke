@@ -924,3 +924,75 @@ nav {
     flex-wrap: wrap;
   }
 }
+
+/* Vista previa Showdown: estilos acotados, sin cambiar identidad ni cabecera. */
+.showdown-import {
+  margin-block: 1.5rem;
+  border-top: 2px solid var(--red, #ff2449);
+}
+.showdown-import textarea {
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  font: inherit;
+  background: #101014;
+  color: #f5f5f5;
+  border: 1px solid #48484f;
+  padding: 0.8rem;
+  border-radius: 0.4rem;
+}
+.showdown-card {
+  border: 1px solid #48484f;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+.showdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+.showdown-import label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-block: 0.5rem;
+  min-width: 0;
+}
+.showdown-import .check {
+  flex-direction: row;
+  align-items: center;
+}
+.showdown-import .check input {
+  width: auto;
+}
+.showdown-import input,
+.showdown-import select {
+  max-width: 100%;
+  min-width: 0;
+}
+.showdown-import table input {
+  width: 5.5rem;
+}
+.showdown-import small {
+  display: block;
+  line-height: 1.5;
+}
+.showdown-import p,
+.showdown-import li {
+  line-height: 1.6;
+}
+.showdown-import details {
+  margin-block: 0.8rem;
+}
+.showdown-warnings {
+  color: #f0ca9b;
+  padding-left: 1.4rem;
+}
+.showdown-import button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

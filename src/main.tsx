@@ -15,6 +15,7 @@ import {
   moveFactor,
 } from "./battle";
 import "./style.css";
+import { ShowdownImporter } from "./ShowdownImporter";
 import { TacticalSummary } from "./TacticalSummary";
 import { statModel } from "./stats";
 import { DefensiveCell } from "./DefensiveCell";
@@ -57,6 +58,14 @@ function App() {
   const [message, setMessage] = useState(boot.error);
   const [tab, setTab] = useState("Combate");
   const [save, setSave] = useState("");
+  const [showdownOpen, setShowdownOpen] = useState(false);
+  const [showdownBackup, setShowdownBackup] = useState(() => {
+    try {
+      return localStorage.getItem(`${KEY}-backup-showdown`) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [moveSelection, setMoveSelection] = useState<[number, number]>([0, 0]);
   const selectMoves = (own: number, rival: number) =>
     setMoveSelection([own, rival]);
@@ -82,6 +91,16 @@ function App() {
         ? { rival: p }
         : { team: old.team.map((x) => (x.id === p.id ? p : x)) }),
     }));
+  function downloadJson(content: string, filename: string) {
+    const url = URL.createObjectURL(
+      new Blob([content], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   function exportFile() {
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(s, null, 2)], { type: "application/json" }),
@@ -149,6 +168,18 @@ function App() {
               Cargar demostración ↗
             </button>
             <button onClick={exportFile}>Exportar JSON ↓</button>
+            <button onClick={() => setShowdownOpen(true)}>
+              Importar Showdown
+            </button>
+            {showdownBackup && (
+              <button
+                onClick={() =>
+                  downloadJson(showdownBackup, "zlocke-respaldo-showdown.json")
+                }
+              >
+                Descargar respaldo Showdown
+              </button>
+            )}
             <button onClick={() => file.current?.click()}>
               Importar JSON ↑
             </button>
@@ -179,6 +210,26 @@ function App() {
               ×
             </button>
           </div>
+        )}
+        {showdownOpen && (
+          <ShowdownImporter
+            session={s}
+            onCancel={() => setShowdownOpen(false)}
+            onImport={(next, summary, replace) => {
+              if (replace) {
+                const backup = saveBlocked
+                  ? (localStorage.getItem(KEY) ?? JSON.stringify(s))
+                  : JSON.stringify(s);
+                localStorage.setItem(`${KEY}-backup-showdown`, backup);
+                setShowdownBackup(backup);
+              }
+              setS(next);
+              setSaveBlocked(false);
+              setShowdownOpen(false);
+              setTab("Equipo");
+              setMessage(summary);
+            }}
+          />
         )}
         {s.demo && (
           <div className="demo">

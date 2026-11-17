@@ -53,7 +53,11 @@ const rows = [
 ];
 export const CHART = rows.map((row) => row.split(" ").map(Number));
 export type StageKey =
-  "attack" | "defense" | "spAttack" | "spDefense" | "speed";
+  | "attack"
+  | "defense"
+  | "spAttack"
+  | "spDefense"
+  | "speed";
 export const STAGE_KEYS: StageKey[] = [
   "attack",
   "defense",
@@ -84,6 +88,7 @@ export interface Move {
   damageKind: "unknown" | "direct" | "special";
 }
 export interface Pokemon {
+  showdown?: import("./showdown").ShowdownInfo;
   id: string;
   name: string;
   species: string;
@@ -332,6 +337,17 @@ export function parseSession(text: string): Session {
     p &&
     typeof p.id === "string" &&
     typeof p.name === "string" &&
+    (p.showdown === undefined ||
+      (!!p.showdown &&
+        [null, "M", "F"].includes(p.showdown.sex) &&
+        typeof p.showdown.shiny === "boolean" &&
+        typeof p.showdown.happiness === "number" &&
+        Number.isInteger(p.showdown.happiness) &&
+        p.showdown.happiness >= 0 &&
+        p.showdown.happiness <= 255 &&
+        typeof p.showdown.raw === "string" &&
+        Array.isArray(p.showdown.origins) &&
+        p.showdown.origins.every((x: unknown) => typeof x === "string"))) &&
     (s.version === 1 ||
       (typeof p.species === "string" &&
         ["unknown", "none", "known"].includes(p.secondType) &&

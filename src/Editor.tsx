@@ -162,6 +162,31 @@ export function Editor({
   );
   return (
     <div className="editor" aria-label={label}>
+      {p.showdown && (
+        <details className="showdown-metadata">
+          <summary>Procedencia Showdown y datos adicionales</summary>
+          <p>
+            Sexo: {p.showdown.sex ?? "desconocido"} · Shiny:{" "}
+            {p.showdown.shiny ? "sí" : "no"} · Felicidad: {p.showdown.happiness}
+            . No se aplican efectos nuevos por estos datos.
+          </p>
+          <p>
+            Registro del texto original; las correcciones posteriores de la
+            ficha prevalecen.
+          </p>
+          <ul>
+            {p.showdown.origins.map((origin, i) => (
+              <li key={i}>{origin}</li>
+            ))}
+          </ul>
+          <details>
+            <summary>Texto original importado</summary>
+            <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+              {p.showdown.raw}
+            </pre>
+          </details>
+        </details>
+      )}
       <Search
         entries={SPECIES}
         label={`${label}: buscar especie`}

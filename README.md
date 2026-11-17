@@ -98,3 +98,9 @@ Se guardan modos, parámetros, bases personalizadas, intervalos, política EV, r
 - `src/StatsEditor.tsx`, `src/ScenarioView.tsx`, `src/Editor.tsx`: modos, parámetros y edición.
 - `src/data/`, `scripts/`: catálogos reproducibles de revisión fija.
 - `src/*.test.ts`, `tests/`: regresiones, contraste con Smogon y flujos de navegador en ordenador/móvil.
+
+## Importar Showdown (TXT o texto)
+
+Pulsa **Importar Showdown**, carga el TXT de Añil o pega el equipo y revisa la vista previa. Confirma los niveles, elige explícitamente conservar los EV o ponerlos a cero y corrige/excluye las entradas pendientes. Puedes reemplazar con respaldo descargable o añadir sin cambiar el rival ni la configuración. Los PS actuales quedan desconocidos salvo que marques **Equipo a PS completos**, que solo rellena máximos exactos.
+
+Se conservan especie/apodo, movimientos, habilidad/objeto, naturaleza, IV/EV, sexo, shiny, felicidad y procedencia en JSON v5. Formas no reconocidas, parámetros ilegales y efectos no compatibles se señalan; no se sustituyen ni normalizan. Consulta [convenciones, fuentes, formato de ejemplo y limitaciones](docs/SHOWDOWN.md).
