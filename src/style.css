@@ -539,3 +539,116 @@ footer small {
     width: 100%;
   }
 }
+/* Controles de consulta: conservan cabecera, colores y tipografía originales. */
+.team-editor {
+  max-width: 900px;
+}
+.identity {
+  grid-template-columns: 1fr 1fr;
+}
+.catalog-search {
+  position: relative;
+  margin: 12px 0;
+}
+.suggestions {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  left: 0;
+  right: 0;
+  border: 1px solid #654047;
+  background: #202126;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 12px 24px #0008;
+  max-height: 320px;
+  overflow: auto;
+}
+.suggestions button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  border: 0;
+  border-radius: 4px;
+  min-height: 38px;
+}
+.suggestions button[aria-selected="true"] {
+  background: #422c32;
+}
+.suggestions > small {
+  display: block;
+  padding: 8px;
+}
+.type-warning {
+  color: #ed98a4;
+  font-size: 11px;
+}
+.move-editor {
+  background: #15161b;
+  padding: 12px;
+  border: 1px solid #303138;
+  border-radius: 6px;
+}
+.move-editor summary {
+  color: #e9e9ec;
+  line-height: 1.7;
+}
+.move-editor summary small {
+  display: block;
+  margin-left: 14px;
+  font-size: 10px;
+  white-space: normal;
+}
+.move-editor .fields {
+  align-items: end;
+}
+.move-editor p {
+  font-size: 11px;
+}
+.battle-moves > div {
+  padding: 12px 0;
+  border-bottom: 1px solid #303138;
+}
+.battle-moves small {
+  display: block;
+  line-height: 1.8;
+  margin-top: 5px;
+}
+.move-note {
+  display: block;
+  line-height: 1.6;
+  font-weight: 400;
+  font-size: 9px;
+  margin-top: 4px;
+}
+nav {
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.move-result strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 550px) {
+  .move-editor .fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .identity {
+    grid-template-columns: 1fr;
+  }
+  .suggestions button {
+    min-height: 44px;
+  }
+  .move-editor input,
+  .move-editor select {
+    min-height: 42px;
+  }
+  nav {
+    gap: 18px;
+  }
+  nav button {
+    font-size: 12px;
+  }
+}

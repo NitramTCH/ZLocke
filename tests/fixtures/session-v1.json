@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "demo": true,
+  "team": [
+    {
+      "id": "b0d19c66-ba9c-41fa-abb7-36c59a182344",
+      "name": "Volt · ejemplo",
+      "types": [
+        "Eléctrico"
+      ],
+      "typesKnown": true,
+      "level": 32,
+      "hp": 74,
+      "maxHp": 90,
+      "attack": 67,
+      "defense": 58,
+      "spAttack": 81,
+      "spDefense": 63,
+      "speed": 96,
+      "ability": "Desconocida",
+      "item": "Sin confirmar",
+      "moves": [
+        {
+          "name": "Rayo",
+          "type": "Eléctrico",
+          "category": "Especial"
+        },
+        {
+          "name": "Surf",
+          "type": "Agua",
+          "category": "Especial"
+        },
+        {
+          "name": "Puño hielo",
+          "type": "Hielo",
+          "category": "Físico"
+        },
+        {
+          "name": "Protección",
+          "type": "Normal",
+          "category": "Estado"
+        }
+      ]
+    },
+    {
+      "id": "01133c2f-52c6-455a-9b37-eb222e3334d9",
+      "name": "Brasa · ejemplo",
+      "types": [
+        "Fuego",
+        "Volador"
+      ],
+      "typesKnown": true,
+      "level": null,
+      "hp": 86,
+      "maxHp": 100,
+      "attack": null,
+      "defense": null,
+      "spAttack": null,
+      "spDefense": null,
+      "speed": 75,
+      "ability": "",
+      "item": "",
+      "moves": [
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida"
+        },
+        {
+          "name": "",
+          "type": "",
+          "category": "Desconocida"
+        }
+      ]
+    }
+  ],
+  "rival": {
+    "id": "c42b935e-85dc-4a68-b688-fccbf54ab7b7",
+    "name": "Rival · ejemplo",
+    "types": [
+      "Agua",
+      "Tierra"
+    ],
+    "typesKnown": true,
+    "level": null,
+    "hp": null,
+    "maxHp": null,
+    "attack": null,
+    "defense": null,
+    "spAttack": null,
+    "spDefense": null,
+    "speed": null,
+    "ability": "",
+    "item": "",
+    "moves": [
+      {
+        "name": "Terremoto",
+        "type": "Tierra",
+        "category": "Físico"
+      },
+      {
+        "name": "Rayo hielo",
+        "type": "Hielo",
+        "category": "Especial"
+      },
+      {
+        "name": "",
+        "type": "",
+        "category": "Desconocida"
+      },
+      {
+        "name": "",
+        "type": "",
+        "category": "Desconocida"
+      }
+    ]
+  },
+  "activeId": "b0d19c66-ba9c-41fa-abb7-36c59a182344"
+}

@@ -7,19 +7,29 @@ import {
   newSession,
   demoSession,
   parseSession,
-  effectiveness,
   stab,
   speedOrder,
   type Pokemon,
   type Session,
-  type Type,
+  completeTypes,
+  displayName,
+  moveFactor,
 } from "./battle";
 import "./style.css";
+import { Editor, QuickStats } from "./Editor";
+import { CATALOG_VERSION, powerLabel } from "./catalog";
 const KEY = "zlocke-session-v1";
 function initial() {
   try {
     const raw = localStorage.getItem(KEY);
-    return { session: raw ? parseSession(raw) : newSession(), error: "" };
+    const session = raw ? parseSession(raw) : newSession();
+    if (
+      raw &&
+      JSON.parse(raw).version === 1 &&
+      !localStorage.getItem(`${KEY}-backup`)
+    )
+      localStorage.setItem(`${KEY}-backup`, raw);
+    return { session, error: "" };
   } catch {
     return {
       session: newSession(),
@@ -35,16 +45,21 @@ function App() {
   const [message, setMessage] = useState(boot.error);
   const [tab, setTab] = useState("Combate");
   const [save, setSave] = useState("");
+  const [saveBlocked, setSaveBlocked] = useState(!!boot.error);
   const file = useRef<HTMLInputElement>(null);
   const active = s.team.find((p) => p.id === s.activeId)!;
   useEffect(() => {
+    if (saveBlocked) {
+      setSave("Guardado detenido: importa una copia o inicia otra partida.");
+      return;
+    }
     try {
       localStorage.setItem(KEY, JSON.stringify(s));
       setSave("Guardado en este navegador");
     } catch {
       setSave("No se pudo guardar: exporta una copia JSON.");
     }
-  }, [s]);
+  }, [s, saveBlocked]);
   const update = (p: Pokemon, rival = false) =>
     setS((old) => ({
       ...old,
@@ -68,6 +83,7 @@ function App() {
       if (f.size > 1_000_000) throw new Error("El archivo supera 1 MB.");
       const next = parseSession(await f.text());
       if (confirm("¿Reemplazar la partida actual por el archivo?")) {
+        setSaveBlocked(false);
         setS(next);
         setMessage("Partida importada.");
       }
@@ -107,6 +123,7 @@ function App() {
                     "¿Cargar la demostración y reemplazar la partida actual?",
                   )
                 ) {
+                  setSaveBlocked(false);
                   setS(demoSession());
                   setMessage(
                     "Demostración cargada: datos ficticios, sin sets de especie.",
@@ -130,7 +147,7 @@ function App() {
           </div>
         </div>
         <nav>
-          {["Combate", "Tabla de tipos", "Acerca de"].map((t) => (
+          {["Equipo", "Combate", "Tabla de tipos", "Acerca de"].map((t) => (
             <button
               className={tab === t ? "selected" : ""}
               onClick={() => setTab(t)}
@@ -154,14 +171,17 @@ function App() {
             habilidades ni movimientos habituales de ninguna especie.{" "}
             <button
               onClick={() => {
-                if (confirm("¿Crear una partida vacía?")) setS(newSession());
+                if (confirm("¿Crear una partida vacía?")) {
+                  setSaveBlocked(false);
+                  setS(newSession());
+                }
               }}
             >
               Empezar mi partida
             </button>
           </div>
         )}
-        {tab === "Combate" ? (
+        {tab === "Combate" || tab === "Equipo" ? (
           <>
             <section className="team">
               <div className="section-title">
@@ -182,18 +202,18 @@ function App() {
                     <span className="slot-number">
                       0{i + 1} {p.id === s.activeId ? " / EN CAMPO" : ""}
                     </span>
-                    <strong>{p.name || "Sin nombre"}</strong>
+                    <strong>{displayName(p)}</strong>
                     <span>
-                      {p.typesKnown
+                      {completeTypes(p)
                         ? p.types.join(" / ")
-                        : "Tipos sin confirmar"}
+                        : `${p.types.join(" / ") || "Tipo 1 ?"} / Tipo 2 ?`}
                     </span>
                     <small>
                       PS {p.hp ?? "?"} / {p.maxHp ?? "?"}
                     </small>
                   </button>
                 ))}
-                {s.team.length < 6 && (
+                {tab === "Equipo" && s.team.length < 6 && (
                   <button
                     className="slot add"
                     onClick={() => {
@@ -206,13 +226,13 @@ function App() {
                 )}
               </div>
             </section>
-            <div className="editors">
+            <div className={tab === "Equipo" ? "team-editor" : "editors"}>
               <section className="panel">
                 <div className="section-title">
                   <h2>
                     <span>02</span> En tu lado
                   </h2>
-                  {s.team.length > 1 && (
+                  {tab === "Equipo" && s.team.length > 1 && (
                     <button
                       className="text-button"
                       onClick={() => {
@@ -226,170 +246,206 @@ function App() {
                     </button>
                   )}
                 </div>
-                <Editor
-                  p={active}
-                  onChange={(p) => update(p)}
-                  label="Tu Pokémon"
-                />
+                {tab === "Equipo" ? (
+                  <Editor
+                    key={active.id}
+                    p={active}
+                    onChange={(p) => update(p)}
+                    label="Tu Pokémon"
+                  />
+                ) : (
+                  <>
+                    <h3>{displayName(active)}</h3>
+                    <QuickStats
+                      p={active}
+                      onChange={(p) => update(p)}
+                      label="Tu Pokémon"
+                    />
+                    <p>Modifica especie, tipos y movimientos en Equipo.</p>
+                    <button onClick={() => setTab("Equipo")}>
+                      Editar Pokémon en Equipo
+                    </button>
+                    <div className="battle-moves">
+                      {active.moves.map((m, i) => (
+                        <div key={i}>
+                          <strong>{m.name || `Movimiento ${i + 1}`}</strong>
+                          <small>
+                            {m.type || "Tipo ?"} · {m.category} · Potencia:{" "}
+                            {powerLabel(m)} · Precisión:{" "}
+                            {m.accuracyMode === "number"
+                              ? `${m.accuracy}%`
+                              : m.accuracyMode === "special"
+                                ? "Especial / sin tirada estándar"
+                                : "?"}{" "}
+                            · Prioridad: {m.priority ?? "?"}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </section>
-              <section className="panel">
+              {tab === "Combate" && (
+                <section className="panel">
+                  <div className="section-title">
+                    <h2>
+                      <span>VS</span> Rival
+                    </h2>
+                    <small>Introduce solo lo conocido</small>
+                  </div>
+                  <Editor
+                    p={s.rival}
+                    onChange={(p) => update(p, true)}
+                    label="Rival"
+                    compact
+                  />
+                </section>
+              )}
+            </div>
+            {tab === "Combate" && (
+              <section className="analysis">
                 <div className="section-title">
                   <h2>
-                    <span>VS</span> Rival
+                    <span>03</span> Lectura del combate
                   </h2>
-                  <small>Introduce solo lo conocido</small>
+                  <small>Información, no una mejor jugada automática</small>
                 </div>
-                <Editor
-                  p={s.rival}
-                  onChange={(p) => update(p, true)}
-                  label="Rival"
-                />
-              </section>
-            </div>
-            <section className="analysis">
-              <div className="section-title">
-                <h2>
-                  <span>03</span> Lectura del combate
-                </h2>
-                <small>Información, no una mejor jugada automática</small>
-              </div>
-              <div className="results">
-                <article className="panel">
-                  <div className="eyebrow">TUS MOVIMIENTOS</div>
-                  <h3>Encuentra la ventaja de tipo</h3>
-                  <p>
-                    Compara efectividad y STAB por separado. Estos factores no
-                    son daño.
-                  </p>
-                  <div className="move-result header-row">
-                    <span>Movimiento</span>
-                    <span>Tipo</span>
-                    <span>Efect.</span>
-                    <span>STAB</span>
-                  </div>
-                  {active.moves.map((m, i) => (
-                    <div className="move-result" key={i}>
-                      <strong>{m.name || `Movimiento ${i + 1}`}</strong>
-                      <span>{m.type || "?"}</span>
-                      <b
-                        className={
-                          effectiveness(
-                            m.type,
-                            s.rival.types,
-                            s.rival.typesKnown,
-                          )! > 1
-                            ? "good"
-                            : ""
-                        }
-                      >
-                        {m.category === "Desconocida"
-                          ? "?"
-                          : m.category === "Estado"
-                            ? "—"
-                            : factor(
-                                effectiveness(
-                                  m.type,
-                                  s.rival.types,
-                                  s.rival.typesKnown,
-                                ),
-                              )}
-                      </b>
-                      <span>
-                        {m.category === "Desconocida"
-                          ? "?"
-                          : m.category === "Estado"
-                            ? "—"
-                            : factor(
-                                stab(m.type, active.types, active.typesKnown),
-                              )}
-                      </span>
+                <div className="results">
+                  <article className="panel">
+                    <div className="eyebrow">TUS MOVIMIENTOS</div>
+                    <h3>Encuentra la ventaja de tipo</h3>
+                    <p>
+                      Compara efectividad y STAB por separado. Estos factores no
+                      son daño.
+                    </p>
+                    <div className="move-result header-row">
+                      <span>Movimiento</span>
+                      <span>Tipo</span>
+                      <span>Efect.</span>
+                      <span>STAB</span>
                     </div>
-                  ))}
-                  <div className="footnote">
-                    ? = información insuficiente. Estado: no se evalúan sus
-                    efectos. STAB estándar: 1,5× al compartir tipo. No se
-                    aplican habilidades, objetos, potencia, precisión ni reglas
-                    particulares del juego.
-                  </div>
-                </article>
-                <article className="panel">
-                  <div className="eyebrow">ORDEN DE ACCIÓN</div>
-                  <h3>¿Quién se mueve antes?</h3>
-                  <div className="speed">
-                    <div>
-                      <strong>{active.speed ?? "?"}</strong>
-                      <span>Tu velocidad real</span>
-                    </div>
-                    <span>vs</span>
-                    <div>
-                      <strong>{s.rival.speed ?? "?"}</strong>
-                      <span>Velocidad rival</span>
-                    </div>
-                  </div>
-                  <p className="speed-verdict">
-                    {speedOrder(active.speed, s.rival.speed)}
-                  </p>
-                  <div className="footnote">
-                    Comparación de valores introducidos. Prioridad, estados,
-                    habilidades, objetos, cambios de estadísticas y efectos de
-                    campo pueden cambiar el orden; no se aplican aquí.
-                  </div>
-                </article>
-              </div>
-              <article className="panel defense">
-                <h3>Antes de cambiar, mira qué puedes recibir</h3>
-                <p>
-                  Efectividad de los movimientos ofensivos rivales conocidos
-                  contra cada miembro. Un multiplicador menor indica menor
-                  efectividad por tipos, no menos daño garantizado.
-                </p>
-                <div className="scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Tu equipo</th>
-                        {s.rival.moves.map((m, i) => (
-                          <th key={i}>
-                            {m.name || `Rival ${i + 1}`}
-                            <small>{m.type || "Tipo desconocido"}</small>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.team.map((p) => (
-                        <tr key={p.id}>
-                          <th>
-                            {p.name || "Sin nombre"}
-                            {p.id === s.activeId && <small>EN CAMPO</small>}
-                          </th>
-                          {s.rival.moves.map((m, i) => (
-                            <td key={i}>
-                              {m.category === "Desconocida"
-                                ? "Categoría desconocida"
+                    {active.moves.map((m, i) => (
+                      <div className="move-result" key={i}>
+                        <strong>
+                          {m.name || `Movimiento ${i + 1}`}
+                          <small className="move-note">
+                            {m.powerMode === "variable"
+                              ? "Potencia variable · no se resuelve"
+                              : m.powerMode === "fixed"
+                                ? "Daño especial · no se evalúa"
                                 : m.category === "Estado"
-                                  ? "Estado: sin evaluar"
-                                  : factor(
-                                      effectiveness(
-                                        m.type,
-                                        p.types,
-                                        p.typesKnown,
-                                      ),
-                                    )}
-                            </td>
+                                  ? "Estado · no se evalúa"
+                                  : ""}
+                          </small>
+                        </strong>
+                        <span>{m.type || "?"}</span>
+                        <b
+                          className={moveFactor(m, s.rival)! > 1 ? "good" : ""}
+                        >
+                          {m.category === "Desconocida"
+                            ? "?"
+                            : m.category === "Estado" || m.powerMode === "fixed"
+                              ? "—"
+                              : factor(moveFactor(m, s.rival))}
+                        </b>
+                        <span>
+                          {m.category === "Desconocida"
+                            ? "?"
+                            : m.category === "Estado" || m.powerMode === "fixed"
+                              ? "—"
+                              : factor(
+                                  stab(
+                                    m.type,
+                                    active.types,
+                                    completeTypes(active),
+                                  ),
+                                )}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="footnote">
+                      ? = información insuficiente. Estado: no se evalúan sus
+                      efectos. STAB estándar: 1,5× al compartir tipo. No se
+                      aplican habilidades, objetos, potencia, precisión ni
+                      reglas particulares del juego. Los tipos de catálogo son
+                      nominales: ajusta manualmente movimientos cuyo tipo
+                      cambie. La potencia variable no se resuelve.
+                    </div>
+                  </article>
+                  <article className="panel">
+                    <div className="eyebrow">ORDEN DE ACCIÓN</div>
+                    <h3>¿Quién se mueve antes?</h3>
+                    <div className="speed">
+                      <div>
+                        <strong>{active.speed ?? "?"}</strong>
+                        <span>Tu velocidad real</span>
+                      </div>
+                      <span>vs</span>
+                      <div>
+                        <strong>{s.rival.speed ?? "?"}</strong>
+                        <span>Velocidad rival</span>
+                      </div>
+                    </div>
+                    <p className="speed-verdict">
+                      {speedOrder(active.speed, s.rival.speed)}
+                    </p>
+                    <div className="footnote">
+                      Comparación de valores introducidos. Prioridad, estados,
+                      habilidades, objetos, cambios de estadísticas y efectos de
+                      campo pueden cambiar el orden; no se aplican aquí.
+                    </div>
+                  </article>
+                </div>
+                <article className="panel defense">
+                  <h3>Antes de cambiar, mira qué puedes recibir</h3>
+                  <p>
+                    Efectividad de los movimientos ofensivos rivales conocidos
+                    contra cada miembro. Un multiplicador menor indica menor
+                    efectividad por tipos, no menos daño garantizado.
+                  </p>
+                  <div className="scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tu equipo</th>
+                          {s.rival.moves.map((m, i) => (
+                            <th key={i}>
+                              {m.name || `Rival ${i + 1}`}
+                              <small>{m.type || "Tipo desconocido"}</small>
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="footnote">
-                  No se evalúan habilidades, objetos, PS, estadísticas
-                  defensivas ni efectos al entrar al campo. Los movimientos
-                  desconocidos siguen siendo un riesgo sin evaluar.
-                </div>
-              </article>
-            </section>
+                      </thead>
+                      <tbody>
+                        {s.team.map((p) => (
+                          <tr key={p.id}>
+                            <th>
+                              {displayName(p)}
+                              {p.id === s.activeId && <small>EN CAMPO</small>}
+                            </th>
+                            {s.rival.moves.map((m, i) => (
+                              <td key={i}>
+                                {m.category === "Desconocida"
+                                  ? "Categoría desconocida"
+                                  : m.category === "Estado" ||
+                                      m.powerMode === "fixed"
+                                    ? "Efecto especial: sin evaluar"
+                                    : factor(moveFactor(m, p))}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="footnote">
+                    No se evalúan habilidades, objetos, PS, estadísticas
+                    defensivas ni efectos al entrar al campo. Los movimientos
+                    desconocidos siguen siendo un riesgo sin evaluar.
+                  </div>
+                </article>
+              </section>
+            )}
           </>
         ) : tab === "Tabla de tipos" ? (
           <section className="panel">
@@ -445,9 +501,20 @@ function App() {
             </p>
             <h3>Conocido, desconocido y supuesto</h3>
             <p>
-              Un campo vacío significa desconocido. Los tipos solo se usan si
-              marcas su combinación como confirmada. La tabla moderna y el STAB
-              estándar son los supuestos explícitos de esta versión.
+              Un campo vacío significa desconocido. «Sin segundo tipo» confirma
+              un monotipo; «Segundo tipo desconocido» bloquea la efectividad
+              exacta. Los guardados antiguos con un único tipo necesitan
+              confirmación. La tabla moderna y el STAB estándar son los
+              supuestos explícitos de esta versión.
+            </p>
+            <h3>Catálogo local</h3>
+            <p>
+              {CATALOG_VERSION}. Incluye especies por defecto y movimientos en
+              español; las formas no incluidas se introducen manualmente. No
+              representa un juego concreto. Seleccionar especie no cambia
+              habilidades, movimientos ni estadísticas reales. Los datos de
+              movimientos se pueden ajustar; no se aplican sus efectos. Consulta
+              las fuentes y criterios en README.
             </p>
             <h3>Lo que vendrá después</h3>
             <p>
@@ -470,194 +537,6 @@ function App() {
         </footer>
       </main>
     </>
-  );
-}
-function Editor({
-  p,
-  onChange,
-  label,
-}: {
-  p: Pokemon;
-  onChange: (p: Pokemon) => void;
-  label: string;
-}) {
-  const set = (patch: Partial<Pokemon>) => onChange({ ...p, ...patch });
-  const num = (key: keyof Pokemon, title: string) => (
-    <label key={key}>
-      {title}
-      <input
-        type="number"
-        min={key === "hp" ? 0 : 1}
-        max={99999}
-        step="1"
-        placeholder="?"
-        value={(p[key] as number) ?? ""}
-        onChange={(e) => {
-          const n = e.target.value === "" ? null : Number(e.target.value);
-          if (
-            n !== null &&
-            (!Number.isSafeInteger(n) ||
-              n < (key === "hp" ? 0 : 1) ||
-              n > 99999)
-          )
-            return;
-          if (key === "hp" && n !== null && p.maxHp !== null && n > p.maxHp)
-            return;
-          if (key === "maxHp" && n !== null && p.hp !== null && n < p.hp)
-            return;
-          set({ [key]: n });
-        }}
-      />
-    </label>
-  );
-  return (
-    <div className="editor" aria-label={label}>
-      <label>
-        Nombre
-        <input
-          placeholder="Nombre o mote"
-          value={p.name}
-          onChange={(e) => set({ name: e.target.value })}
-        />
-      </label>
-      <div className="fields">
-        <label>
-          Tipo 1
-          <select
-            value={p.types[0] || ""}
-            onChange={(e) => {
-              const t = e.target.value as Type;
-              set({
-                types: t ? [t, ...p.types.slice(1).filter((x) => x !== t)] : [],
-                typesKnown: t ? p.typesKnown : false,
-              });
-            }}
-          >
-            <option value="">Desconocido</option>
-            {TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tipo 2
-          <select
-            value={p.types[1] || ""}
-            disabled={!p.types[0]}
-            onChange={(e) =>
-              set({
-                types: e.target.value
-                  ? [p.types[0], e.target.value as Type]
-                  : p.types.slice(0, 1),
-              })
-            }
-          >
-            <option value="">Ninguno / desconocido</option>
-            {TYPES.filter((t) => t !== p.types[0]).map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
-        {num("level", "Nivel")}
-      </div>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={p.typesKnown}
-          disabled={!p.types.length}
-          onChange={(e) => set({ typesKnown: e.target.checked })}
-        />{" "}
-        Combinación de tipos completa y confirmada
-      </label>
-      <div className="fields">
-        {num("hp", "PS actuales")}
-        {num("maxHp", "PS máximos")}
-        {num("speed", "Velocidad real")}
-      </div>
-      <details>
-        <summary>Estadísticas, habilidad y objeto</summary>
-        <div className="fields">
-          {num("attack", "Ataque")}
-          {num("defense", "Defensa")}
-          {num("spAttack", "At. especial")}
-          {num("spDefense", "Def. especial")}
-        </div>
-        <div className="fields">
-          <label>
-            Habilidad
-            <input
-              placeholder="Desconocida"
-              value={p.ability}
-              onChange={(e) => set({ ability: e.target.value })}
-            />
-          </label>
-          <label>
-            Objeto
-            <input
-              placeholder="Desconocido"
-              value={p.item}
-              onChange={(e) => set({ item: e.target.value })}
-            />
-          </label>
-        </div>
-        <small>
-          Se guardan como referencia; sus efectos aún no se calculan.
-        </small>
-      </details>
-      <div className="moves-label">
-        MOVIMIENTOS <span>Nombre libre · sin sets presupuestos</span>
-      </div>
-      {p.moves.map((m, i) => (
-        <div className="move-fields" key={i}>
-          <span>{i + 1}</span>
-          <input
-            aria-label={`${label} movimiento ${i + 1}`}
-            placeholder="Movimiento desconocido"
-            value={m.name}
-            onChange={(e) =>
-              set({
-                moves: p.moves.map((v, j) =>
-                  j === i ? { ...v, name: e.target.value } : v,
-                ),
-              })
-            }
-          />
-          <select
-            aria-label={`${label} tipo movimiento ${i + 1}`}
-            value={m.type}
-            onChange={(e) =>
-              set({
-                moves: p.moves.map((v, j) =>
-                  j === i ? { ...v, type: e.target.value as Type | "" } : v,
-                ),
-              })
-            }
-          >
-            <option value="">Tipo ?</option>
-            {TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-          <select
-            aria-label={`${label} categoría movimiento ${i + 1}`}
-            value={m.category}
-            onChange={(e) =>
-              set({
-                moves: p.moves.map((v, j) =>
-                  j === i
-                    ? { ...v, category: e.target.value as typeof m.category }
-                    : v,
-                ),
-              })
-            }
-          >
-            {["Desconocida", "Físico", "Especial", "Estado"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-      ))}
-    </div>
   );
 }
 createRoot(document.getElementById("root")!).render(

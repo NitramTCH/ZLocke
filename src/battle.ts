@@ -45,10 +45,18 @@ export interface Move {
   name: string;
   type: Type | "";
   category: "Desconocida" | "Físico" | "Especial" | "Estado";
+  power: number | null;
+  powerMode: "unknown" | "number" | "variable" | "fixed" | "status";
+  accuracy: number | null;
+  accuracyMode: "unknown" | "number" | "special";
+  priority: number | null;
+  source: string;
 }
 export interface Pokemon {
   id: string;
   name: string;
+  species: string;
+  secondType: "unknown" | "none" | "known";
   types: Type[];
   typesKnown: boolean;
   level: number | null;
@@ -64,7 +72,7 @@ export interface Pokemon {
   moves: Move[];
 }
 export interface Session {
-  version: 1;
+  version: 2;
   demo: boolean;
   team: Pokemon[];
   rival: Pokemon;
@@ -73,6 +81,8 @@ export interface Session {
 export const blankPokemon = (): Pokemon => ({
   id: crypto.randomUUID(),
   name: "",
+  species: "",
+  secondType: "unknown",
   types: [],
   typesKnown: false,
   level: null,
@@ -89,6 +99,12 @@ export const blankPokemon = (): Pokemon => ({
     name: "",
     type: "",
     category: "Desconocida",
+    power: null,
+    powerMode: "unknown",
+    accuracy: null,
+    accuracyMode: "unknown",
+    priority: null,
+    source: "",
   })),
 });
 export function effectiveness(
@@ -121,7 +137,7 @@ export function speedOrder(a: number | null, b: number | null): string {
 export function newSession(): Session {
   const p = blankPokemon();
   return {
-    version: 1,
+    version: 2,
     demo: false,
     team: [p],
     rival: blankPokemon(),
@@ -132,6 +148,7 @@ export function demoSession(): Session {
   const s = newSession();
   Object.assign(s.team[0], {
     name: "Volt · ejemplo",
+    secondType: "none",
     types: ["Eléctrico"],
     typesKnown: true,
     level: 32,
@@ -154,6 +171,7 @@ export function demoSession(): Session {
   const p = blankPokemon();
   Object.assign(p, {
     name: "Brasa · ejemplo",
+    secondType: "known",
     types: ["Fuego", "Volador"],
     typesKnown: true,
     hp: 86,
@@ -163,6 +181,7 @@ export function demoSession(): Session {
   s.team.push(p);
   Object.assign(s.rival, {
     name: "Rival · ejemplo",
+    secondType: "known",
     types: ["Agua", "Tierra"],
     typesKnown: true,
     moves: [
@@ -172,15 +191,39 @@ export function demoSession(): Session {
       { name: "", type: "", category: "Desconocida" },
     ],
   });
+  for (const p of [...s.team, s.rival])
+    p.moves = p.moves.map(
+      (m) =>
+        ({
+          ...m,
+          power: null,
+          powerMode: "unknown",
+          accuracy: null,
+          accuracyMode: "unknown",
+          priority: null,
+          source: "",
+        }) as Move,
+    );
   s.demo = true;
   return s;
 }
 export function parseSession(text: string): Session {
   const s = JSON.parse(text);
+  const integer = (n: unknown, min: number, max: number) =>
+    n === null ||
+    (typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max);
   const validP = (p: Pokemon) =>
     p &&
     typeof p.id === "string" &&
     typeof p.name === "string" &&
+    (s.version === 1 ||
+      (typeof p.species === "string" &&
+        ["unknown", "none", "known"].includes(p.secondType) &&
+        (p.secondType !== "known" || p.types?.length === 2) &&
+        (p.secondType !== "none" || p.types?.length === 1) &&
+        (p.secondType !== "unknown" ||
+          (!p.typesKnown && p.types?.length <= 1)) &&
+        (!p.typesKnown || p.secondType !== "unknown"))) &&
     typeof p.ability === "string" &&
     typeof p.item === "string" &&
     typeof p.typesKnown === "boolean" &&
@@ -216,10 +259,22 @@ export function parseSession(text: string): Session {
         m &&
         typeof m.name === "string" &&
         (m.type === "" || TYPES.includes(m.type)) &&
-        ["Desconocida", "Físico", "Especial", "Estado"].includes(m.category),
+        ["Desconocida", "Físico", "Especial", "Estado"].includes(m.category) &&
+        (s.version === 1 ||
+          (integer(m.power, 1, 99999) &&
+            integer(m.accuracy, 1, 100) &&
+            integer(m.priority, -7, 7) &&
+            typeof m.source === "string" &&
+            ["unknown", "number", "variable", "fixed", "status"].includes(
+              m.powerMode,
+            ) &&
+            ["unknown", "number", "special"].includes(m.accuracyMode) &&
+            (m.powerMode !== "number" || m.power !== null) &&
+            (m.accuracyMode !== "number" || m.accuracy !== null))),
     );
   if (
-    s.version !== 1 ||
+    !s ||
+    ![1, 2].includes(s.version) ||
     typeof s.demo !== "boolean" ||
     !Array.isArray(s.team) ||
     s.team.length < 1 ||
@@ -230,7 +285,46 @@ export function parseSession(text: string): Session {
     !s.team.some((p: Pokemon) => p.id === s.activeId)
   )
     throw new Error(
-      "Partida incompatible o datos inválidos. Revisa el JSON (versión 1).",
+      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1 y 2).",
     );
+  if (s.version === 1) {
+    const migrate = (p: Pokemon): Pokemon => ({
+      ...p,
+      species: "",
+      secondType: p.types.length === 2 ? "known" : "unknown",
+      typesKnown: p.types.length === 2 && p.typesKnown,
+      moves: p.moves.map((m) => ({
+        ...m,
+        power: null,
+        powerMode: "unknown",
+        accuracy: null,
+        accuracyMode: "unknown",
+        priority: null,
+        source: "",
+      })),
+    });
+    return {
+      ...s,
+      version: 2,
+      team: s.team.map(migrate),
+      rival: migrate(s.rival),
+    };
+  }
   return s;
+}
+
+export function completeTypes(p: Pokemon) {
+  return p.typesKnown && p.secondType !== "unknown";
+}
+export function displayName(p: Pokemon) {
+  return p.name || p.species || "Sin nombre";
+}
+export function moveFactor(m: Move, p: Pokemon): number | null {
+  if (
+    m.category === "Estado" ||
+    m.category === "Desconocida" ||
+    m.powerMode === "fixed"
+  )
+    return null;
+  return effectiveness(m.type, p.types, completeTypes(p));
 }
