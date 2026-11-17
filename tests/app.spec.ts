@@ -6,6 +6,9 @@ test("búsqueda, selección y ajustes manuales sin inventar sets", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Equipo", exact: true }).click();
   await page
+    .getByLabel("Tu Pokémon modo estadísticas", { exact: true })
+    .selectOption("manual");
+  await page
     .getByRole("combobox", { name: "Tu Pokémon: buscar especie", exact: true })
     .fill("pika");
   await page.getByRole("option", { name: "Pikachu #25", exact: true }).click();
@@ -58,6 +61,9 @@ test("búsqueda, selección y ajustes manuales sin inventar sets", async ({
     .getByLabel("Rival tipo 2", { exact: true })
     .selectOption("unknown");
   await expect(page.locator(".move-result").nth(1)).toContainText("?");
+  await page
+    .getByLabel("Rival modo estadísticas", { exact: true })
+    .selectOption("manual");
   await page.getByLabel("Rival PS máximos", { exact: true }).fill("100");
   await page.getByLabel("Rival PS actuales", { exact: true }).fill("73");
   await page.reload();
@@ -73,7 +79,7 @@ test("búsqueda, selección y ajustes manuales sin inventar sets", async ({
     ),
   ).toBe(true);
 });
-test("migra localStorage y JSON antiguo, respalda y exporta versión 4", async ({
+test("migra localStorage y JSON antiguo, respalda y exporta versión 5", async ({
   page,
 }) => {
   await page.addInitScript(
@@ -88,7 +94,7 @@ test("migra localStorage y JSON antiguo, respalda y exporta versión 4", async (
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("zlocke-session-v1")!).version,
     ),
-  ).toBe(4);
+  ).toBe(5);
   expect(
     await page.evaluate(
       () =>
@@ -109,7 +115,7 @@ test("migra localStorage y JSON antiguo, respalda y exporta versión 4", async (
   let text = "";
   for await (const chunk of stream!) text += chunk.toString();
   expect(JSON.parse(text).team[0].secondType).toBe("none");
-  expect(JSON.parse(text).version).toBe(4);
+  expect(JSON.parse(text).version).toBe(5);
   page.on("dialog", (d) => d.accept());
   await page.locator("input[type=file]").setInputFiles({
     name: "legacy.json",
@@ -168,7 +174,7 @@ test("daño en ambos sentidos, etapas, quemadura y consulta sin cambiar PS", asy
   page,
 }) => {
   const { default: fixture } = await import(
-    "./fixtures/session-v3-damage.json",
+    "./fixtures/session-v5-manual.json",
     { with: { type: "json" } }
   );
   await page.goto("/");
@@ -239,7 +245,7 @@ test("migración v2 con respaldo específico y sin inventar estados", async ({
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("zlocke-session-v1")!).version,
     ),
-  ).toBe(4);
+  ).toBe(5);
   expect(
     await page.evaluate(() => localStorage.getItem("zlocke-session-v1-backup")),
   ).toBe("respaldo anterior");
@@ -265,7 +271,7 @@ test("buscadores de efectos, inmunidad, anulación, activación y persistencia",
   page,
 }) => {
   const { default: fixture } = await import(
-    "./fixtures/session-v3-damage.json",
+    "./fixtures/session-v5-manual.json",
     { with: { type: "json" } }
   );
   await page.goto("/");
@@ -350,7 +356,7 @@ test("velocidad con Pañuelo, etapas y parálisis, sin duplicar la ficha", async
   page,
 }) => {
   const { default: fixture } = await import(
-    "./fixtures/session-v3-damage.json",
+    "./fixtures/session-v5-manual.json",
     { with: { type: "json" } }
   );
   await page.goto("/");
@@ -395,7 +401,7 @@ test("velocidad con Pañuelo, etapas y parálisis, sin duplicar la ficha", async
   ).toBe(true);
 });
 
-test("exportación/importación v4 conserva efectos y respaldo de v3", async ({
+test("exportación/importación v5 conserva efectos y respaldo de v3", async ({
   page,
 }) => {
   const { default: fixture } = await import(
@@ -430,18 +436,16 @@ test("exportación/importación v4 conserva efectos y respaldo de v3", async ({
   let data = "";
   for await (const chunk of stream!) data += chunk.toString();
   expect(JSON.parse(data).team[0].abilityId).toBe(37);
-  expect(JSON.parse(data).version).toBe(4);
+  expect(JSON.parse(data).version).toBe(5);
   await page
     .getByLabel("Tu Pokémon habilidad manual", { exact: true })
     .fill("Fangame");
   page.on("dialog", (d) => d.accept());
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "efectos.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(data),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "efectos.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(data),
+  });
   await expect(page.getByRole("status")).toContainText("Partida importada");
   expect(
     await page.evaluate(

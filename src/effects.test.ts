@@ -231,7 +231,7 @@ describe("Velocidad efectiva y orden", () => {
 describe("Persistencia v4", () => {
   it("migra v3 sin inferir habilidades y sin perder los valores", () => {
     const s = parseSession(JSON.stringify(legacy));
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.team[0]).toMatchObject({
       abilityId: null,
       itemId: null,

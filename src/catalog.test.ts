@@ -28,6 +28,7 @@ describe("Catálogos locales", () => {
     expect(next).toEqual({
       ...p,
       species: "Pikachu",
+      speciesId: 25,
       types: ["Eléctrico"],
       secondType: "none",
       typesKnown: true,
@@ -94,7 +95,7 @@ describe("Catálogos locales", () => {
 describe("Información parcial y migración", () => {
   it("no interpreta el antiguo vacío de segundo tipo como monotipo confirmado", () => {
     const migrated = parseSession(JSON.stringify(legacy));
-    expect(migrated.version).toBe(4);
+    expect(migrated.version).toBe(5);
     expect(migrated.team[0]).toMatchObject({
       name: legacy.team[0].name,
       species: "",
@@ -134,6 +135,6 @@ describe("Información parcial y migración", () => {
     const t = demoSession();
     t.team[0].moves[0].accuracy = 101;
     expect(() => parseSession(JSON.stringify(t))).toThrow();
-    expect(() => parseSession(JSON.stringify({ ...t, version: 5 }))).toThrow();
+    expect(() => parseSession(JSON.stringify({ ...t, version: 6 }))).toThrow();
   });
 });

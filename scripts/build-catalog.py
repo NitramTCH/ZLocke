@@ -11,8 +11,11 @@ names={r['pokemon_species_id']:r['name'] for r in read('pokemon_species_names') 
 pt={}
 for r in read('pokemon_types'):
     if int(r['type_id']) in types: pt.setdefault(r['pokemon_id'],[]).append((int(r['slot']),types[int(r['type_id'])]))
+stat_keys={1:'hp',2:'attack',3:'defense',4:'spAttack',5:'spDefense',6:'speed'}
+base={}
+for r in read('pokemon_stats'): base.setdefault(r['pokemon_id'],{})[stat_keys[int(r['stat_id'])]]=int(r['base_stat'])
 # Especies por defecto: las formas no incluidas siguen admitiendo entrada manual.
-species=[{'id':int(p['id']),'name':names[p['species_id']],'types':[t for _,t in sorted(pt[p['id']])]} for p in read('pokemon') if p['is_default']=='1' and p['species_id'] in names and p['id'] in pt]
+species=[{'id':int(p['id']),'name':names[p['species_id']],'types':[t for _,t in sorted(pt[p['id']])],'baseStats':base[p['id']]} for p in read('pokemon') if p['is_default']=='1' and p['species_id'] in names and p['id'] in pt]
 mn={r['move_id']:r['name'] for r in read('move_names') if r['local_language_id']=='7'}
 # Casos con potencia condicionada, aunque el CSV conserve un valor numérico nominal.
 variable_slugs = {'low-kick','flail','reversal','return','present','frustration','magnitude','beat-up','spit-up','eruption','water-spout','gyro-ball','natural-gift','fling','trump-card','wring-out','punishment','grass-knot','crush-grip','heavy-slam','electro-ball','stored-power','heat-crash','power-trip','dragon-energy','hard-press','last-respects','rage-fist','echoed-voice','weather-ball','terrain-pulse','hidden-power'}
@@ -28,3 +31,7 @@ for m in read('moves'):
 for name,data in [('species',species),('moves',moves)]:
     (ROOT/'src'/'data'/f'{name}.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':'))+'\n')
     print(name,len(data))
+
+nature_names={r['nature_id']:r['name'] for r in read('nature_names') if r['local_language_id']=='7'}
+natures=[{'id':int(r['id']),'name':nature_names[r['id']],'english':r['identifier'].title(),'up':stat_keys[int(r['increased_stat_id'])],'down':stat_keys[int(r['decreased_stat_id'])]} for r in read('natures')]
+(ROOT/'src/data/natures.json').write_text(json.dumps(natures,ensure_ascii=False,separators=(',',':'))+'\n')

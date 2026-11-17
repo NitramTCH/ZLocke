@@ -1,3 +1,12 @@
+import speciesCatalog from "./data/species.json";
+import moveCatalog from "./data/moves.json";
+import {
+  newStatParams,
+  validParams,
+  type StatMode,
+  type StatParams,
+  type EvPolicy,
+} from "./statTypes";
 import abilityCatalog from "./data/ability-catalog.json";
 import itemCatalog from "./data/item-catalog.json";
 export const TYPES = [
@@ -63,6 +72,7 @@ export const newStages = (
 });
 export interface Move {
   name: string;
+  catalogId: number | null;
   type: Type | "";
   category: "Desconocida" | "Físico" | "Especial" | "Estado";
   power: number | null;
@@ -77,6 +87,10 @@ export interface Pokemon {
   id: string;
   name: string;
   species: string;
+  speciesId: number | null;
+  statMode: StatMode;
+  statParams: StatParams;
+  hpReview: boolean;
   secondType: "unknown" | "none" | "known";
   types: Type[];
   typesKnown: boolean;
@@ -103,7 +117,8 @@ export interface Pokemon {
   moves: Move[];
 }
 export interface Session {
-  version: 4;
+  version: 5;
+  evPolicy: EvPolicy;
   rules: "gen9-standard";
   demo: boolean;
   team: Pokemon[];
@@ -114,6 +129,10 @@ export const blankPokemon = (): Pokemon => ({
   id: crypto.randomUUID(),
   name: "",
   species: "",
+  speciesId: null,
+  statMode: "manual",
+  statParams: newStatParams(),
+  hpReview: false,
   secondType: "unknown",
   types: [],
   typesKnown: false,
@@ -139,6 +158,7 @@ export const blankPokemon = (): Pokemon => ({
   abilitySuppressed: false,
   moves: Array.from({ length: 4 }, () => ({
     name: "",
+    catalogId: null,
     type: "",
     category: "Desconocida",
     power: null,
@@ -179,12 +199,16 @@ export function speedOrder(a: number | null, b: number | null): string {
 }
 export function newSession(): Session {
   const p = blankPokemon();
+  p.statMode = "estimated";
+  const rival = blankPokemon();
+  rival.statMode = "estimated";
   return {
-    version: 4,
+    version: 5,
+    evPolicy: "unknown",
     rules: "gen9-standard",
     demo: false,
     team: [p],
-    rival: blankPokemon(),
+    rival,
     activeId: p.id,
   };
 }
@@ -240,6 +264,7 @@ export function demoSession(): Session {
       (m) =>
         ({
           ...m,
+          catalogId: m.catalogId ?? null,
           power: null,
           powerMode: "unknown",
           accuracy: null,
@@ -260,6 +285,7 @@ export function demoSession(): Session {
     spDefense: 64,
   });
   for (const p of [...s.team, s.rival]) {
+    p.statMode = "manual";
     p.burn = "none";
     p.paralysis = "none";
     p.stages = newStages();
@@ -276,6 +302,7 @@ export function demoSession(): Session {
     accuracy: i === 3 ? null : 100,
     accuracyMode: i === 3 ? "special" : "number",
     priority: i === 3 ? 4 : 0,
+    catalogId: [85, 57, 8, 182][i],
     source: "Demostración ficticia",
   }));
   s.rival.moves = s.rival.moves.map((m, i) =>
@@ -288,6 +315,7 @@ export function demoSession(): Session {
           accuracy: 100,
           accuracyMode: "number",
           priority: 0,
+          catalogId: i === 0 ? 89 : 58,
           source: "Demostración ficticia",
         }
       : m,
@@ -336,6 +364,14 @@ export function parseSession(text: string): Session {
         typeof p.abilitySuppressed === "boolean" &&
         ["unknown", "none", "paralyzed"].includes(p.paralysis) &&
         !(p.burn === "burned" && p.paralysis === "paralyzed"))) &&
+    (s.version < 5 ||
+      ((p.speciesId === null ||
+        speciesCatalog.some(
+          (e) => e.id === p.speciesId && e.name === p.species,
+        )) &&
+        ["manual", "calculated", "estimated"].includes(p.statMode) &&
+        typeof p.hpReview === "boolean" &&
+        validParams(p.statParams))) &&
     typeof p.typesKnown === "boolean" &&
     Array.isArray(p.types) &&
     p.types.length <= 2 &&
@@ -361,13 +397,19 @@ export function parseSession(text: string): Session {
           n <= 99999)
       );
     }) &&
-    (p.hp === null || p.maxHp === null || p.hp <= p.maxHp) &&
+    ((s.version >= 5 && (p.statMode !== "manual" || p.hpReview)) ||
+      p.hp === null ||
+      p.maxHp === null ||
+      p.hp <= p.maxHp) &&
     Array.isArray(p.moves) &&
     p.moves.length === 4 &&
     p.moves.every(
       (m) =>
         m &&
         typeof m.name === "string" &&
+        (s.version < 5 ||
+          m.catalogId === null ||
+          moveCatalog.some((e) => e.id === m.catalogId)) &&
         (m.type === "" || TYPES.includes(m.type)) &&
         ["Desconocida", "Físico", "Especial", "Estado"].includes(m.category) &&
         (s.version === 1 ||
@@ -386,8 +428,9 @@ export function parseSession(text: string): Session {
     );
   if (
     !s ||
-    ![1, 2, 3, 4].includes(s.version) ||
+    ![1, 2, 3, 4, 5].includes(s.version) ||
     (s.version >= 3 && s.rules !== "gen9-standard") ||
+    (s.version === 5 && !["unknown", "zero"].includes(s.evPolicy)) ||
     typeof s.demo !== "boolean" ||
     !Array.isArray(s.team) ||
     s.team.length < 1 ||
@@ -398,7 +441,7 @@ export function parseSession(text: string): Session {
     !s.team.some((p: Pokemon) => p.id === s.activeId)
   )
     throw new Error(
-      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1, 2, 3 y 4).",
+      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1, 2, 3, 4 y 5).",
     );
   if (s.version === 1) {
     const migrate = (p: Pokemon): Pokemon => ({
@@ -442,11 +485,31 @@ export function parseSession(text: string): Session {
       abilitySuppressed: false,
       paralysis: p.burn === "burned" ? "none" : "unknown",
     });
+    s.team = s.team.map(migrateEffects);
+    s.rival = migrateEffects(s.rival);
+  }
+  if (s.version < 5) {
+    const migrateStats = (p: Pokemon): Pokemon => ({
+      ...p,
+      speciesId: speciesCatalog.find((e) => e.name === p.species)?.id ?? null,
+      statMode: "manual",
+      statParams: newStatParams(),
+      hpReview: false,
+      moves: p.moves.map((m) => {
+        const found = m.source.match(/movimiento #(\d+)/);
+        const id = found ? Number(found[1]) : null;
+        return {
+          ...m,
+          catalogId: id && moveCatalog.some((e) => e.id === id) ? id : null,
+        };
+      }),
+    });
     return {
       ...s,
-      version: 4,
-      team: s.team.map(migrateEffects),
-      rival: migrateEffects(s.rival),
+      version: 5,
+      evPolicy: "unknown",
+      team: s.team.map(migrateStats),
+      rival: migrateStats(s.rival),
     };
   }
   return s;

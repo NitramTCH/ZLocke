@@ -1,3 +1,4 @@
+import { moveCapability } from "./catalog";
 import {
   completeTypes,
   effectiveness,
@@ -43,10 +44,8 @@ export function predictDamage(a: Pokemon, d: Pokemon, m: Move): DamageResult {
         "Daño fijo, proporcional, de respuesta o KO directo: no está implementado.",
       ],
     };
-  if (m.damageKind !== "direct")
-    reasons.push(
-      "Efectos especiales o sin verificar: selecciona un ataque simple del catálogo o confirma manualmente un impacto de daño directo simple.",
-    );
+  const capability = moveCapability(m);
+  if (!capability.canCalculate) reasons.push(capability.reason);
   if (!m.type) reasons.push("Falta el tipo del movimiento.");
   if (m.category === "Desconocida")
     reasons.push("Falta la categoría física/especial del movimiento.");

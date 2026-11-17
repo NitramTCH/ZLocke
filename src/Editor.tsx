@@ -9,85 +9,152 @@ import {
 } from "./catalog";
 import { EffectEditor } from "./EffectEditor";
 import { BattleConditions } from "./BattleConditions";
+import { StatsEditor } from "./StatsEditor";
+import { statModel } from "./stats";
+import type { EvPolicy } from "./statTypes";
+import { moveCapability } from "./catalog";
 import { Search } from "./Search";
 type Props = {
   p: Pokemon;
   onChange: (p: Pokemon) => void;
   label: string;
   compact?: boolean;
+  policy?: EvPolicy;
 };
-export function QuickStats({ p, onChange, label }: Props) {
+export function QuickStats({ p, onChange, label, policy = "unknown" }: Props) {
+  const model = statModel(p, policy);
+  const limit =
+    p.statMode === "manual"
+      ? p.maxHp
+      : model.ok
+        ? (model.ranges.hp?.max ?? null)
+        : null;
+  const hpValid = p.hp === null || limit === null || p.hp <= limit;
   return (
     <div className="fields" aria-label={`${label} datos rápidos`}>
       {(["hp", "maxHp", "speed"] as const).map((key, i) => (
         <label key={key}>
-          {["PS actuales", "PS máximos", "Velocidad real"][i]}
-          <input
-            aria-label={`${label} ${["PS actuales", "PS máximos", "Velocidad real"][i]}`}
-            type="number"
-            min={key === "hp" ? 0 : 1}
-            max={99999}
-            step="1"
-            placeholder="?"
-            value={p[key] ?? ""}
-            onChange={(e) => {
-              const n = e.target.value === "" ? null : Number(e.target.value);
-              if (
-                n !== null &&
-                (!Number.isSafeInteger(n) ||
-                  n < (key === "hp" ? 0 : 1) ||
-                  n > 99999)
-              )
-                return;
-              if (key === "hp" && n !== null && p.maxHp !== null && n > p.maxHp)
-                return;
-              if (key === "maxHp" && n !== null && p.hp !== null && n < p.hp)
-                return;
-              onChange({ ...p, [key]: n });
-            }}
-          />
+          {p.statMode !== "manual" && key !== "hp" ? (
+            <>
+              <span>
+                {key === "maxHp"
+                  ? "PS máximos derivados"
+                  : "Velocidad de ficha derivada"}
+              </span>
+              <output>
+                {model.ok
+                  ? `${model.ranges[key === "maxHp" ? "hp" : "speed"]?.min}–${model.ranges[key === "maxHp" ? "hp" : "speed"]?.max} (ref. ${model.ranges[key === "maxHp" ? "hp" : "speed"]?.reference})`
+                  : "Faltan parámetros"}
+              </output>
+            </>
+          ) : (
+            <>
+              {["PS actuales", "PS máximos", "Velocidad real"][i]}
+              <input
+                aria-label={`${label} ${["PS actuales", "PS máximos", "Velocidad real"][i]}`}
+                type="number"
+                min={key === "hp" ? 0 : 1}
+                max={99999}
+                step="1"
+                placeholder="?"
+                value={p[key] ?? ""}
+                onChange={(e) => {
+                  const n =
+                    e.target.value === "" ? null : Number(e.target.value);
+                  if (
+                    n !== null &&
+                    (!Number.isSafeInteger(n) ||
+                      n < (key === "hp" ? 0 : 1) ||
+                      n > 99999)
+                  )
+                    return;
+                  if (key === "hp" && n !== null && limit !== null && n > limit)
+                    return;
+                  if (
+                    key === "maxHp" &&
+                    n !== null &&
+                    p.hp !== null &&
+                    n < p.hp
+                  )
+                    return;
+                  onChange({
+                    ...p,
+                    [key]: n,
+                    hpReview: key === "hp" ? false : p.hpReview,
+                  });
+                }}
+              />
+            </>
+          )}
+          {key === "hp" && p.hpReview && (
+            <>
+              <small>
+                PS pendientes de revisión por cambios de ficha; no se usan para
+                KO ni salud completa.
+              </small>
+              <button
+                disabled={!hpValid}
+                onClick={() => onChange({ ...p, hpReview: false })}
+              >
+                Confirmar PS actuales
+              </button>
+              {!hpValid && (
+                <small>
+                  El valor guardado supera el máximo posible: corrige PS
+                  actuales.
+                </small>
+              )}
+            </>
+          )}
         </label>
       ))}
     </div>
   );
 }
-export function Editor({ p, onChange, label, compact = false }: Props) {
+export function Editor({
+  p,
+  onChange,
+  label,
+  compact = false,
+  policy = "unknown",
+}: Props) {
   const set = (patch: Partial<Pokemon>) => onChange({ ...p, ...patch });
   const stats = (
     <>
-      <div className="fields">
-        {(["level", "attack", "defense", "spAttack", "spDefense"] as const).map(
-          (key, i) => (
-            <label key={key}>
-              {
-                [
-                  "Nivel",
-                  "Ataque real",
-                  "Defensa real",
-                  "At. especial real",
-                  "Def. especial real",
-                ][i]
-              }
-              <input
-                type="number"
-                min="1"
-                max="99999"
-                value={p[key] ?? ""}
-                placeholder="?"
-                onChange={(e) => {
-                  const n =
-                    e.target.value === "" ? null : Number(e.target.value);
-                  if (
-                    n === null ||
-                    (Number.isSafeInteger(n) && n >= 1 && n <= 99999)
-                  )
-                    set({ [key]: n });
-                }}
-              />
-            </label>
-          ),
-        )}
-      </div>
+      {p.statMode === "manual" && (
+        <div className="fields">
+          {(["attack", "defense", "spAttack", "spDefense"] as const).map(
+            (key, i) => (
+              <label key={key}>
+                {
+                  [
+                    "Ataque real",
+                    "Defensa real",
+                    "At. especial real",
+                    "Def. especial real",
+                  ][i]
+                }
+                <input
+                  type="number"
+                  min="1"
+                  max="99999"
+                  value={p[key] ?? ""}
+                  placeholder="?"
+                  onChange={(e) => {
+                    const n =
+                      e.target.value === "" ? null : Number(e.target.value);
+                    if (
+                      n === null ||
+                      (Number.isSafeInteger(n) && n >= 1 && n <= 99999)
+                    )
+                      set({ [key]: n });
+                  }}
+                />
+              </label>
+            ),
+          )}
+        </div>
+      )}
       <small>
         Estadísticas reales de la ficha, antes de efectos temporales y etapas.
       </small>
@@ -107,7 +174,14 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
             aria-label={`${label} especie manual`}
             value={p.species}
             placeholder="Especie o forma no incluida"
-            onChange={(e) => set({ species: e.target.value })}
+            onChange={(e) =>
+              set({
+                species: e.target.value,
+                speciesId: null,
+                hpReview:
+                  (p.statMode !== "manual" && p.hp !== null) || p.hpReview,
+              })
+            }
           />
         </label>
         <label>
@@ -200,7 +274,8 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
           exacta permanece desconocida.
         </p>
       )}
-      <QuickStats p={p} onChange={onChange} label={label} />
+      <StatsEditor p={p} onChange={onChange} label={label} policy={policy} />
+      <QuickStats p={p} onChange={onChange} label={label} policy={policy} />
       <EffectEditor p={p} onChange={onChange} label={label} />
       <BattleConditions p={p} onChange={onChange} label={label} />
       {compact ? (
@@ -229,9 +304,9 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
       ))}
       <div className="footnote">
         {CATALOG_VERSION}. La predicción usa potencia fija solo en ataques
-        simples confirmados. Precisión y prioridad se mantienen separadas del
-        daño y del orden. Los efectos especiales y cambios dinámicos de tipo no
-        se aplican.
+        compatibles reconocidos automáticamente por ID. Precisión y prioridad se
+        mantienen separadas del daño y del orden. Los efectos especiales y
+        cambios dinámicos de tipo no se aplican.
       </div>
     </div>
   );
@@ -292,30 +367,18 @@ function MoveEditor({
         label={`${label}: buscar movimiento`}
         onSelect={(entry) => onChange(selectMove(entry))}
       />
-      <label>
-        Comportamiento para el motor
-        <select
-          aria-label={`${label} comportamiento daño`}
-          value={m.damageKind}
-          onChange={(e) =>
-            set({ damageKind: e.target.value as Move["damageKind"] })
-          }
-        >
-          <option value="unknown">Sin verificar</option>
-          <option value="special">
-            Efectos especiales / fuera del alcance
-          </option>
-          <option value="direct">
-            Confirmo: daño directo simple, un impacto
-          </option>
-        </select>
-      </label>
-      <small>
-        Confirmar manualmente es declarar que el movimiento no cambia las
-        estadísticas usadas ni tiene potencia, tipo o número de impactos
-        dinámicos. Estado y potencia variable/fija especial siguen sin
-        calcularse.
-      </small>
+      <div className="footnote">
+        <strong>{moveCapability(m).label}</strong>
+        {m.catalogId !== null && (
+          <p>
+            Base de catálogo:{" "}
+            {MOVES.find((entry) => entry.id === m.catalogId)?.name} · #
+            {m.catalogId}. Cambiar el nombre no cambia esta mecánica de
+            referencia.
+          </p>
+        )}
+        <p>{moveCapability(m).reason}</p>
+      </div>
       <div className="fields">
         <label>
           Nombre manual

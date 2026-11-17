@@ -15,6 +15,7 @@ import {
   moveFactor,
 } from "./battle";
 import "./style.css";
+import { statModel } from "./stats";
 import { DefensiveCell } from "./DefensiveCell";
 import { SpeedPanel } from "./SpeedPanel";
 import { EffectEditor } from "./EffectEditor";
@@ -29,13 +30,13 @@ function initial() {
     const session = raw ? parseSession(raw) : newSession();
     if (
       raw &&
-      JSON.parse(raw).version < 4 &&
+      JSON.parse(raw).version < 5 &&
       !localStorage.getItem(`${KEY}-backup`)
     )
       localStorage.setItem(`${KEY}-backup`, raw);
     if (
       raw &&
-      JSON.parse(raw).version < 4 &&
+      JSON.parse(raw).version < 5 &&
       !localStorage.getItem(`${KEY}-backup-v${JSON.parse(raw).version}`)
     )
       localStorage.setItem(`${KEY}-backup-v${JSON.parse(raw).version}`, raw);
@@ -191,6 +192,41 @@ function App() {
             </button>
           </div>
         )}
+        <details className="panel party-settings">
+          <summary>Configuración de EV de la partida</summary>
+          <label>
+            EV para estadísticas automáticas
+            <select
+              aria-label="Configuración EV"
+              value={s.evPolicy}
+              onChange={(e) => {
+                const evPolicy = e.target.value as typeof s.evPolicy;
+                setS({
+                  ...s,
+                  evPolicy,
+                  team: s.team.map((p) =>
+                    p.statMode !== "manual" && p.hp !== null
+                      ? { ...p, hpReview: true }
+                      : p,
+                  ),
+                  rival:
+                    s.rival.statMode !== "manual" && s.rival.hp !== null
+                      ? { ...s.rival, hpReview: true }
+                      : s.rival,
+                });
+              }}
+            >
+              <option value="unknown">
+                Personalizados/desconocidos · no suponer cero en límites
+              </option>
+              <option value="zero">EV confirmados a cero</option>
+            </select>
+          </label>
+          <p>
+            Los valores conocidos se conservan. Si son incompatibles con EV
+            cero, se pide revisarlos; no se sobrescriben.
+          </p>
+        </details>
         {tab === "Combate" || tab === "Equipo" ? (
           <>
             <section className="team">
@@ -219,7 +255,15 @@ function App() {
                         : `${p.types.join(" / ") || "Tipo 1 ?"} / Tipo 2 ?`}
                     </span>
                     <small>
-                      PS {p.hp ?? "?"} / {p.maxHp ?? "?"}
+                      PS {p.hpReview ? "? (revisar)" : (p.hp ?? "?")} /{" "}
+                      {p.statMode === "manual"
+                        ? (p.maxHp ?? "?")
+                        : (() => {
+                            const model = statModel(p, s.evPolicy);
+                            return model.ok
+                              ? `${model.ranges.hp?.min}–${model.ranges.hp?.max} (${p.statMode === "estimated" ? "estimado" : "calculado"})`
+                              : "?";
+                          })()}
                     </small>
                   </button>
                 ))}
@@ -228,6 +272,7 @@ function App() {
                     className="slot add"
                     onClick={() => {
                       const p = blankPokemon();
+                      p.statMode = "estimated";
                       setS({ ...s, team: [...s.team, p], activeId: p.id });
                     }}
                   >
@@ -262,6 +307,7 @@ function App() {
                     p={active}
                     onChange={(p) => update(p)}
                     label="Tu Pokémon"
+                    policy={s.evPolicy}
                   />
                 ) : (
                   <>
@@ -270,6 +316,7 @@ function App() {
                       p={active}
                       onChange={(p) => update(p)}
                       label="Tu Pokémon"
+                      policy={s.evPolicy}
                     />
                     <p>Modifica especie, tipos y movimientos en Equipo.</p>
                     <button onClick={() => setTab("Equipo")}>
@@ -317,6 +364,7 @@ function App() {
                     p={s.rival}
                     onChange={(p) => update(p, true)}
                     label="Rival"
+                    policy={s.evPolicy}
                     compact
                   />
                 </section>
@@ -393,7 +441,11 @@ function App() {
                       cuyo tipo cambie. La potencia variable no se resuelve.
                     </div>
                   </article>
-                  <SpeedPanel active={active} rival={s.rival} />
+                  <SpeedPanel
+                    active={active}
+                    rival={s.rival}
+                    policy={s.evPolicy}
+                  />
                 </div>
                 <article className="panel defense">
                   <h3>Antes de cambiar, mira qué puedes recibir</h3>
@@ -435,6 +487,7 @@ function App() {
                                   defender={p}
                                   move={m}
                                   active={p.id === s.activeId}
+                                  policy={s.evPolicy}
                                 />
                               </td>
                             ))}

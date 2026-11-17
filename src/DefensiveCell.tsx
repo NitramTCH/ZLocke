@@ -1,5 +1,6 @@
 import { type Pokemon, type Move, newStages } from "./battle";
-import { predictDamage } from "./damage";
+import type { EvPolicy } from "./statTypes";
+import { intervalDamage } from "./uncertainty";
 import { effectEntry } from "./effects";
 export function entryScenario(p: Pokemon): Pokemon {
   const slug = effectEntry(p, "ability")?.slug;
@@ -18,14 +19,16 @@ export function DefensiveCell({
   defender,
   move,
   active,
+  policy,
 }: {
   attacker: Pokemon;
   defender: Pokemon;
   move: Move;
   active: boolean;
+  policy: EvPolicy;
 }) {
   const p = active ? defender : entryScenario(defender);
-  const r = predictDamage(attacker, p, move);
+  const r = intervalDamage(attacker, p, move, policy);
   return (
     <details className="defensive-reference">
       <summary>

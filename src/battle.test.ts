@@ -63,6 +63,7 @@ describe("Persistencia", () => {
     s.rival.types = ["Agua", "Agua"];
     expect(() => parseSession(JSON.stringify(s))).toThrow();
     const t = newSession();
+    t.team[0].statMode = "manual";
     t.team[0].hp = 20;
     t.team[0].maxHp = 10;
     expect(() => parseSession(JSON.stringify(t))).toThrow();

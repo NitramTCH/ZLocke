@@ -753,3 +753,60 @@ nav {
 .effect-editor small {
   overflow-wrap: anywhere;
 }
+.stat-editor {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #34353d;
+  border-radius: 7px;
+  background: #15161b;
+}
+.stat-editor p {
+  font-size: 11px;
+}
+.stat-editor pre,
+.damage-row pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  max-height: 280px;
+  overflow: auto;
+}
+.stat-editor > label {
+  margin: 12px 0;
+}
+.stat-table input {
+  min-width: 58px;
+  max-width: 80px;
+}
+.stat-table th,
+.stat-table td {
+  padding: 10px 6px;
+}
+.stat-actions {
+  justify-content: flex-start;
+  max-width: none;
+  margin: 14px 0;
+}
+.party-settings {
+  margin: 0 0 20px;
+}
+.party-settings label {
+  margin-top: 14px;
+}
+.fields output {
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.stat-editor [role="alert"] {
+  color: #f49da7;
+}
+.stat-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: #15161b;
+  z-index: 1;
+}
+.stat-table abbr {
+  text-decoration: none;
+}

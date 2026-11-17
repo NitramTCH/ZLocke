@@ -1,5 +1,8 @@
+import { ScenarioView } from "./ScenarioView";
 import { displayName, type Session, type Pokemon, type Move } from "./battle";
-import { RULES_LABEL, DAMAGE_SCOPE, predictDamage } from "./damage";
+import type { EvPolicy } from "./statTypes";
+import { intervalDamage } from "./uncertainty";
+import { RULES_LABEL, DAMAGE_SCOPE } from "./damage";
 export function DamagePanel({ session: s }: { session: Session }) {
   const active = s.team.find((p) => p.id === s.activeId)!;
   return (
@@ -22,11 +25,13 @@ export function DamagePanel({ session: s }: { session: Session }) {
       <div className="results">
         <DamageSide
           title={`${displayName(active)} → ${displayName(s.rival)}`}
+          policy={s.evPolicy}
           attacker={active}
           defender={s.rival}
         />
         <DamageSide
           title={`${displayName(s.rival)} → ${displayName(active)}`}
+          policy={s.evPolicy}
           attacker={s.rival}
           defender={active}
         />
@@ -36,34 +41,63 @@ export function DamagePanel({ session: s }: { session: Session }) {
 }
 function DamageSide({
   title,
+  policy,
   attacker: a,
   defender: d,
 }: {
   title: string;
+  policy: EvPolicy;
   attacker: Pokemon;
   defender: Pokemon;
 }) {
   return (
     <div className="damage-side">
       <h3>{title}</h3>
+      <small>
+        Atacante:{" "}
+        {
+          {
+            manual: "manual confirmado",
+            calculated: "ficha calculada",
+            estimated: "estimado",
+          }[a.statMode]
+        }{" "}
+        · Defensor:{" "}
+        {
+          {
+            manual: "manual confirmado",
+            calculated: "ficha calculada",
+            estimated: "estimado",
+          }[d.statMode]
+        }
+      </small>
       {a.moves.map((m, i) => (
-        <DamageRow key={i} move={m} attacker={a} defender={d} index={i} />
+        <DamageRow
+          key={i}
+          move={m}
+          attacker={a}
+          defender={d}
+          index={i}
+          policy={policy}
+        />
       ))}
     </div>
   );
 }
 function DamageRow({
   move: m,
+  policy,
   attacker: a,
   defender: d,
   index,
 }: {
   move: Move;
+  policy: EvPolicy;
   attacker: Pokemon;
   defender: Pokemon;
   index: number;
 }) {
-  const result = predictDamage(a, d, m);
+  const result = intervalDamage(a, d, m, policy);
   const koText = {
     guaranteed: "Garantiza debilitar en este escenario",
     possible: "Puede debilitar en este escenario",
@@ -76,6 +110,9 @@ function DamageRow({
       <h4>{m.name || `Movimiento ${index + 1}`}</h4>
       {result.ok ? (
         <>
+          {result.uncertainty && (
+            <p>Estimación · envolvente por estadísticas desconocidas y azar</p>
+          )}
           <strong className="damage-range">
             {result.min}–{result.max} PS
           </strong>
@@ -84,6 +121,45 @@ function DamageRow({
               ? `${(Math.floor(result.percent[0] * 10) / 10).toFixed(1)}–${(Math.ceil(result.percent[1] * 10) / 10).toFixed(1)}% de los PS máximos`
               : "Faltan PS máximos del defensor para mostrar porcentaje."}
           </p>
+          {result.uncertainty && (
+            <div className="footnote">
+              <p>
+                Azar con el escenario de referencia:{" "}
+                {result.uncertainty.randomReference[0]}–
+                {result.uncertainty.randomReference[1]} PS.
+              </p>
+              <p>
+                Solo incertidumbre de estadísticas, fijando la tirada en 100:{" "}
+                {result.uncertainty.statsAtMaxRoll[0]}–
+                {result.uncertainty.statsAtMaxRoll[1]} PS.
+              </p>
+              {result.uncertainty.assumptions.map((x, i) => (
+                <p key={i}>{x}</p>
+              ))}
+              <details>
+                <summary>
+                  Escenarios legales que alcanzan los límites de daño
+                </summary>
+                {Object.entries(result.uncertainty.witnesses).map(
+                  ([key, scenario]) => (
+                    <section key={key}>
+                      <h4>
+                        {
+                          {
+                            minimum: "Atacante para daño mínimo",
+                            maximum: "Atacante para daño máximo",
+                            defenderMinimum: "Defensor para daño mínimo",
+                            defenderMaximum: "Defensor para daño máximo",
+                          }[key]
+                        }
+                      </h4>
+                      <ScenarioView scenario={scenario} />
+                    </section>
+                  ),
+                )}
+              </details>
+            </div>
+          )}
           {result.immunity && (
             <p>
               {result.immunity === "types"

@@ -1,5 +1,6 @@
 import speciesData from "./data/species.json";
 import moveData from "./data/moves.json";
+import type { StatValues } from "./statTypes";
 import type { Move, Pokemon, Type } from "./battle";
 export const CATALOG_VERSION =
   "PokéAPI · 89aa167e4867 · instantánea 17/11/2026";
@@ -7,8 +8,12 @@ export interface SpeciesEntry {
   id: number;
   name: string;
   types: Type[];
+  baseStats: StatValues;
 }
-export interface MoveEntry extends Omit<Move, "source" | "damageKind"> {
+export interface MoveEntry extends Omit<
+  Move,
+  "source" | "damageKind" | "catalogId"
+> {
   id: number;
 }
 export const SPECIES = speciesData as SpeciesEntry[];
@@ -39,6 +44,8 @@ export function selectSpecies(p: Pokemon, entry: SpeciesEntry): Pokemon {
   return {
     ...p,
     species: entry.name,
+    speciesId: entry.id,
+    hpReview: (p.statMode !== "manual" && p.hp !== null) || p.hpReview,
     types: [...entry.types],
     typesKnown: true,
     secondType: entry.types.length === 1 ? "none" : "known",
@@ -56,6 +63,7 @@ export function selectMove(entry: MoveEntry): Move {
   const { id, ...data } = entry;
   return {
     ...data,
+    catalogId: id,
     damageKind:
       SIMPLE_MOVE_IDS.has(id) && data.powerMode === "number"
         ? "direct"
@@ -73,4 +81,49 @@ export function powerLabel(m: Move): string {
         : m.powerMode === "number"
           ? String(m.power)
           : "Desconocida";
+}
+
+export function moveCapability(m: Move): {
+  label: string;
+  reason: string;
+  canCalculate: boolean;
+} {
+  if (m.category === "Estado" || m.powerMode === "status")
+    return {
+      label: "Movimiento de estado",
+      reason: "Sus efectos no son daño directo.",
+      canCalculate: false,
+    };
+  if (m.powerMode === "variable")
+    return {
+      label: "Efecto todavía no implementado",
+      reason: "Potencia variable o condicionada.",
+      canCalculate: false,
+    };
+  if (m.powerMode === "fixed")
+    return {
+      label: "Efecto todavía no implementado",
+      reason: "Daño fijo, proporcional, de respuesta o KO directo.",
+      canCalculate: false,
+    };
+  if (m.catalogId === null || !SIMPLE_MOVE_IDS.has(m.catalogId))
+    return {
+      label: "Efecto todavía no implementado",
+      reason:
+        m.catalogId === null
+          ? "Movimiento manual sin una base de catálogo verificada: selecciona un movimiento compatible del buscador; sus ajustes se conservarán al editarlos."
+          : "La mecánica de este movimiento no está verificada para el adaptador actual.",
+      canCalculate: false,
+    };
+  return {
+    label:
+      [1, 5, 10, 11, 15, 17, 22, 25, 33, 55, 65, 70, 84, 98].includes(
+        m.catalogId,
+      ) && !m.source.includes("Ajuste manual")
+        ? "Calculable"
+        : "Calculable con limitaciones",
+    reason:
+      "Daño de un impacto con tipo, categoría y potencia introducidos. Otros efectos no se simulan; los datos que falten se indican en combate.",
+    canCalculate: true,
+  };
 }

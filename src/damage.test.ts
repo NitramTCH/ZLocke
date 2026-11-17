@@ -138,6 +138,7 @@ describe("Daño simple generación IX", () => {
     }
     const { m } = pair();
     m.damageKind = "unknown";
+    m.catalogId = null;
     expect(predictDamage(a, d, m).ok).toBe(false);
   });
   it("respeta potencia, tipo y categoría manuales; precisión no modifica las tiradas", () => {
@@ -170,7 +171,7 @@ describe("Daño simple generación IX", () => {
   });
   it("migra v2 sin completar etapas, estados ni mecánicas por nombre", () => {
     const s = parseSession(JSON.stringify(v2));
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.rules).toBe("gen9-standard");
     expect(s.team[0].stages).toEqual(newStages(null));
     expect(s.team[0]).toMatchObject({
