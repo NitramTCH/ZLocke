@@ -1,3 +1,5 @@
+import abilityCatalog from "./data/ability-catalog.json";
+import itemCatalog from "./data/item-catalog.json";
 export const TYPES = [
   "Normal",
   "Fuego",
@@ -92,10 +94,16 @@ export interface Pokemon {
   itemState: "unknown" | "none" | "known";
   stages: Record<StageKey, number | null>;
   burn: "unknown" | "none" | "burned";
+  abilityId: number | null;
+  itemId: number | null;
+  abilityActivation: "unknown" | "active" | "inactive";
+  itemActivation: "unknown" | "active" | "inactive";
+  abilitySuppressed: boolean;
+  paralysis: "unknown" | "none" | "paralyzed";
   moves: Move[];
 }
 export interface Session {
-  version: 3;
+  version: 4;
   rules: "gen9-standard";
   demo: boolean;
   team: Pokemon[];
@@ -123,6 +131,12 @@ export const blankPokemon = (): Pokemon => ({
   itemState: "unknown",
   stages: newStages(),
   burn: "unknown",
+  paralysis: "unknown",
+  abilityId: null,
+  itemId: null,
+  abilityActivation: "unknown",
+  itemActivation: "unknown",
+  abilitySuppressed: false,
   moves: Array.from({ length: 4 }, () => ({
     name: "",
     type: "",
@@ -166,7 +180,7 @@ export function speedOrder(a: number | null, b: number | null): string {
 export function newSession(): Session {
   const p = blankPokemon();
   return {
-    version: 3,
+    version: 4,
     rules: "gen9-standard",
     demo: false,
     team: [p],
@@ -247,6 +261,7 @@ export function demoSession(): Session {
   });
   for (const p of [...s.team, s.rival]) {
     p.burn = "none";
+    p.paralysis = "none";
     p.stages = newStages();
   }
   const demoMoves = [
@@ -307,6 +322,20 @@ export function parseSession(text: string): Session {
         STAGE_KEYS.every((k) => integer(p.stages[k], -6, 6)) &&
         (p.abilityState !== "known" || p.ability.trim().length > 0) &&
         (p.itemState !== "known" || p.item.trim().length > 0))) &&
+    (s.version < 4 ||
+      (integer(p.abilityId, 1, 99999) &&
+        integer(p.itemId, 1, 99999) &&
+        (p.abilityId === null ||
+          abilityCatalog.some(
+            (e) => e.id === p.abilityId && e.name === p.ability,
+          )) &&
+        (p.itemId === null ||
+          itemCatalog.some((e) => e.id === p.itemId && e.name === p.item)) &&
+        ["unknown", "active", "inactive"].includes(p.abilityActivation) &&
+        ["unknown", "active", "inactive"].includes(p.itemActivation) &&
+        typeof p.abilitySuppressed === "boolean" &&
+        ["unknown", "none", "paralyzed"].includes(p.paralysis) &&
+        !(p.burn === "burned" && p.paralysis === "paralyzed"))) &&
     typeof p.typesKnown === "boolean" &&
     Array.isArray(p.types) &&
     p.types.length <= 2 &&
@@ -357,8 +386,8 @@ export function parseSession(text: string): Session {
     );
   if (
     !s ||
-    ![1, 2, 3].includes(s.version) ||
-    (s.version === 3 && s.rules !== "gen9-standard") ||
+    ![1, 2, 3, 4].includes(s.version) ||
+    (s.version >= 3 && s.rules !== "gen9-standard") ||
     typeof s.demo !== "boolean" ||
     !Array.isArray(s.team) ||
     s.team.length < 1 ||
@@ -369,7 +398,7 @@ export function parseSession(text: string): Session {
     !s.team.some((p: Pokemon) => p.id === s.activeId)
   )
     throw new Error(
-      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1, 2 y 3).",
+      "Partida incompatible o datos inválidos. Revisa el JSON (versiones 1, 2, 3 y 4).",
     );
   if (s.version === 1) {
     const migrate = (p: Pokemon): Pokemon => ({
@@ -399,12 +428,25 @@ export function parseSession(text: string): Session {
       burn: "unknown",
       moves: p.moves.map((m) => ({ ...m, damageKind: "unknown" })),
     });
+    s.team = s.team.map(migrateDamage);
+    s.rival = migrateDamage(s.rival);
+    s.rules = "gen9-standard";
+  }
+  if (s.version < 4) {
+    const migrateEffects = (p: Pokemon): Pokemon => ({
+      ...p,
+      abilityId: null,
+      itemId: null,
+      abilityActivation: "unknown",
+      itemActivation: "unknown",
+      abilitySuppressed: false,
+      paralysis: p.burn === "burned" ? "none" : "unknown",
+    });
     return {
       ...s,
-      version: 3,
-      rules: "gen9-standard",
-      team: s.team.map(migrateDamage),
-      rival: migrateDamage(s.rival),
+      version: 4,
+      team: s.team.map(migrateEffects),
+      rival: migrateEffects(s.rival),
     };
   }
   return s;

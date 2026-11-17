@@ -84,6 +84,23 @@ function DamageRow({
               ? `${(Math.floor(result.percent[0] * 10) / 10).toFixed(1)}–${(Math.ceil(result.percent[1] * 10) / 10).toFixed(1)}% de los PS máximos`
               : "Faltan PS máximos del defensor para mostrar porcentaje."}
           </p>
+          {result.immunity && (
+            <p>
+              {result.immunity === "types"
+                ? "Inmunidad por tipos en este escenario."
+                : "Inmunidad por habilidad/objeto compatible; distinta de la tabla de tipos."}
+            </p>
+          )}
+          {result.applied.length > 0 && (
+            <details>
+              <summary>Efectos compatibles contemplados</summary>
+              <ul>
+                {result.applied.map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
+              </ul>
+            </details>
+          )}
           <p className="ko-label">{koText[result.ko]}</p>
           <div className="conditional">
             Cálculo condicionado a acertar y al escenario descrito. No es una

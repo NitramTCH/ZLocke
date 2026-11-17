@@ -713,3 +713,43 @@ nav {
 .battle-conditions p {
   font-size: 11px;
 }
+.effect-editor {
+  padding: 14px;
+  border: 1px solid #39313b;
+  border-radius: 7px;
+  background: #15161b;
+}
+.effect-editor section {
+  margin: 18px 0;
+  border-bottom: 1px solid #303138;
+  padding-bottom: 14px;
+}
+.effect-editor p {
+  font-size: 11px;
+}
+.effect-editor > small {
+  display: block;
+  line-height: 1.7;
+}
+.defensive-reference {
+  max-width: 250px;
+  white-space: normal;
+  text-align: left;
+  margin: 8px auto;
+}
+.defensive-reference summary {
+  font-size: 10px;
+  line-height: 1.6;
+}
+.defensive-reference p,
+.defensive-reference li {
+  font-size: 10px;
+  line-height: 1.6;
+}
+.damage-row details {
+  padding: 8px 0;
+}
+.damage-row h4,
+.effect-editor small {
+  overflow-wrap: anywhere;
+}

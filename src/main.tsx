@@ -8,7 +8,6 @@ import {
   demoSession,
   parseSession,
   stab,
-  speedOrder,
   type Pokemon,
   type Session,
   completeTypes,
@@ -16,6 +15,9 @@ import {
   moveFactor,
 } from "./battle";
 import "./style.css";
+import { DefensiveCell } from "./DefensiveCell";
+import { SpeedPanel } from "./SpeedPanel";
+import { EffectEditor } from "./EffectEditor";
 import { DamagePanel } from "./DamagePanel";
 import { BattleConditions } from "./BattleConditions";
 import { Editor, QuickStats } from "./Editor";
@@ -27,13 +29,13 @@ function initial() {
     const session = raw ? parseSession(raw) : newSession();
     if (
       raw &&
-      JSON.parse(raw).version < 3 &&
+      JSON.parse(raw).version < 4 &&
       !localStorage.getItem(`${KEY}-backup`)
     )
       localStorage.setItem(`${KEY}-backup`, raw);
     if (
       raw &&
-      JSON.parse(raw).version < 3 &&
+      JSON.parse(raw).version < 4 &&
       !localStorage.getItem(`${KEY}-backup-v${JSON.parse(raw).version}`)
     )
       localStorage.setItem(`${KEY}-backup-v${JSON.parse(raw).version}`, raw);
@@ -273,6 +275,11 @@ function App() {
                     <button onClick={() => setTab("Equipo")}>
                       Editar Pokémon en Equipo
                     </button>
+                    <EffectEditor
+                      p={active}
+                      onChange={(p) => update(p)}
+                      label="Tu Pokémon"
+                    />
                     <BattleConditions
                       p={active}
                       onChange={(p) => update(p)}
@@ -380,35 +387,13 @@ function App() {
                     <div className="footnote">
                       ? = información insuficiente. Estado: no se evalúan sus
                       efectos. STAB estándar: 1,5× al compartir tipo. No se
-                      aplican habilidades, objetos, potencia, precisión ni
-                      reglas particulares del juego. Los tipos de catálogo son
-                      nominales: ajusta manualmente movimientos cuyo tipo
-                      cambie. La potencia variable no se resuelve.
+                      aplican habilidades, objetos ni daño en estos factores de
+                      tipo: consulta la predicción separada. Los tipos de
+                      catálogo son nominales: ajusta manualmente movimientos
+                      cuyo tipo cambie. La potencia variable no se resuelve.
                     </div>
                   </article>
-                  <article className="panel">
-                    <div className="eyebrow">ORDEN DE ACCIÓN</div>
-                    <h3>¿Quién se mueve antes?</h3>
-                    <div className="speed">
-                      <div>
-                        <strong>{active.speed ?? "?"}</strong>
-                        <span>Tu velocidad real</span>
-                      </div>
-                      <span>vs</span>
-                      <div>
-                        <strong>{s.rival.speed ?? "?"}</strong>
-                        <span>Velocidad rival</span>
-                      </div>
-                    </div>
-                    <p className="speed-verdict">
-                      {speedOrder(active.speed, s.rival.speed)}
-                    </p>
-                    <div className="footnote">
-                      Comparación de valores introducidos. Prioridad, estados,
-                      habilidades, objetos, cambios de estadísticas y efectos de
-                      campo pueden cambiar el orden; no se aplican aquí.
-                    </div>
-                  </article>
+                  <SpeedPanel active={active} rival={s.rival} />
                 </div>
                 <article className="panel defense">
                   <h3>Antes de cambiar, mira qué puedes recibir</h3>
@@ -445,6 +430,12 @@ function App() {
                                       m.powerMode === "fixed"
                                     ? "Efecto especial: sin evaluar"
                                     : factor(moveFactor(m, p))}
+                                <DefensiveCell
+                                  attacker={s.rival}
+                                  defender={p}
+                                  move={m}
+                                  active={p.id === s.activeId}
+                                />
                               </td>
                             ))}
                           </tr>
@@ -453,9 +444,11 @@ function App() {
                     </table>
                   </div>
                   <div className="footnote">
-                    No se evalúan habilidades, objetos, PS, estadísticas
-                    defensivas ni efectos al entrar al campo. Los movimientos
-                    desconocidos siguen siendo un riesgo sin evaluar.
+                    La cifra de tipo no incluye habilidades ni objetos.
+                    Despliega cada referencia para ver los efectos compatibles y
+                    datos que faltan. Al cambiar, se reinician etapas; no se
+                    simulan peligros ni activaciones automáticas de entrada.
+                    Consultar no altera PS ni objetos.
                   </div>
                 </article>
               </section>

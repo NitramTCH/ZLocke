@@ -7,6 +7,7 @@ import {
   selectMove,
   powerLabel,
 } from "./catalog";
+import { EffectEditor } from "./EffectEditor";
 import { BattleConditions } from "./BattleConditions";
 import { Search } from "./Search";
 type Props = {
@@ -87,65 +88,8 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
           ),
         )}
       </div>
-      <div className="fields">
-        <label>
-          Habilidad
-          <select
-            aria-label={`${label} estado habilidad`}
-            value={p.abilityState}
-            onChange={(e) =>
-              set({ abilityState: e.target.value as Pokemon["abilityState"] })
-            }
-          >
-            <option value="unknown">Desconocida</option>
-            <option value="none">Ausencia confirmada / anulada</option>
-            <option value="known" disabled={!p.ability.trim()}>
-              Indicada (efecto omitido)
-            </option>
-          </select>
-          <input
-            disabled={p.abilityState === "none"}
-            value={p.ability}
-            placeholder="Desconocida"
-            onChange={(e) =>
-              set({
-                ability: e.target.value,
-                abilityState: e.target.value.trim() ? "known" : "unknown",
-              })
-            }
-          />
-        </label>
-        <label>
-          Objeto
-          <select
-            aria-label={`${label} estado objeto`}
-            value={p.itemState}
-            onChange={(e) =>
-              set({ itemState: e.target.value as Pokemon["itemState"] })
-            }
-          >
-            <option value="unknown">Desconocido</option>
-            <option value="none">Sin objeto confirmado</option>
-            <option value="known" disabled={!p.item.trim()}>
-              Indicado (efecto omitido)
-            </option>
-          </select>
-          <input
-            disabled={p.itemState === "none"}
-            value={p.item}
-            placeholder="Desconocido"
-            onChange={(e) =>
-              set({
-                item: e.target.value,
-                itemState: e.target.value.trim() ? "known" : "unknown",
-              })
-            }
-          />
-        </label>
-      </div>
       <small>
-        Estadísticas reales manuales. Habilidad y objeto: referencia, efectos
-        sin calcular.
+        Estadísticas reales de la ficha, antes de efectos temporales y etapas.
       </small>
     </>
   );
@@ -257,6 +201,7 @@ export function Editor({ p, onChange, label, compact = false }: Props) {
         </p>
       )}
       <QuickStats p={p} onChange={onChange} label={label} />
+      <EffectEditor p={p} onChange={onChange} label={label} />
       <BattleConditions p={p} onChange={onChange} label={label} />
       {compact ? (
         <details>

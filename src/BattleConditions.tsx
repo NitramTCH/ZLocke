@@ -53,7 +53,13 @@ export function BattleConditions({ p, onChange, label }: Props) {
           aria-label={`${label} quemadura`}
           value={p.burn}
           onChange={(e) =>
-            onChange({ ...p, burn: e.target.value as Pokemon["burn"] })
+            onChange({
+              ...p,
+              burn: e.target.value as Pokemon["burn"],
+              ...(e.target.value === "burned"
+                ? { paralysis: "none" as const }
+                : {}),
+            })
           }
         >
           <option value="unknown">Desconocida</option>
@@ -61,10 +67,30 @@ export function BattleConditions({ p, onChange, label }: Props) {
           <option value="burned">Quemado</option>
         </select>
       </label>
+      <label>
+        Parálisis
+        <select
+          aria-label={`${label} parálisis`}
+          value={p.paralysis}
+          onChange={(e) =>
+            onChange({
+              ...p,
+              paralysis: e.target.value as Pokemon["paralysis"],
+              ...(e.target.value === "paralyzed"
+                ? { burn: "none" as const }
+                : {}),
+            })
+          }
+        >
+          <option value="unknown">Desconocida</option>
+          <option value="none">Sin parálisis confirmado</option>
+          <option value="paralyzed">Paralizado</option>
+        </select>
+      </label>
       <small>
-        Solo se aplica quemadura al daño físico simple. La velocidad mostrada
-        sigue siendo la comparación de valores reales, sin etapas ni otros
-        efectos.
+        Se aplican etapas, quemadura y parálisis según el efecto compatible.
+        Valores de la ficha antes de efectos temporales; no los apliques dos
+        veces. Otros estados mayores no se simulan.
       </small>
     </details>
   );

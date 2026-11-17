@@ -170,7 +170,7 @@ describe("Daño simple generación IX", () => {
   });
   it("migra v2 sin completar etapas, estados ni mecánicas por nombre", () => {
     const s = parseSession(JSON.stringify(v2));
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.rules).toBe("gen9-standard");
     expect(s.team[0].stages).toEqual(newStages(null));
     expect(s.team[0]).toMatchObject({

@@ -6,9 +6,11 @@ import {
   type Type,
   type StageKey,
 } from "./battle";
+import { resolveEffects } from "./effects";
+import { engineDamage } from "./calcAdapter";
 export const RULES_LABEL = "Reglas estándar de generación IX";
 export const DAMAGE_SCOPE =
-  "Referencia para individuales; no garantiza compatibilidad con fangames. Un impacto, sin crítico; contempla nivel, estadísticas reales antes de etapas, etapas, STAB 1,5×, tipos, 16 tiradas (85–100) y quemadura física. Escenario sin clima, terreno, pantallas, protección, teracristalización ni otros estados/efectos. Omite habilidades, objetos, efectos especiales y efectos secundarios o posteriores al golpe. Precisión separada; no decide el orden ni la mejor jugada.";
+  "Referencia para individuales; no garantiza compatibilidad con fangames. Un impacto, sin crítico; contempla nivel, estadísticas reales antes de etapas, etapas, STAB 1,5×, tipos, 16 tiradas (85–100) y quemadura física. Escenario sin clima, terreno, pantallas, protección, teracristalización ni otros estados/efectos. Aplica solo habilidades/objetos compatibles y activados; desconocidos y no implementados se omiten en una referencia condicionada. No simula efectos secundarios o posteriores al golpe. Precisión separada; no decide el orden ni la mejor jugada.";
 export type DamageResult =
   | { ok: false; reasons: string[] }
   | {
@@ -19,32 +21,9 @@ export type DamageResult =
       percent: [number, number] | null;
       ko: "guaranteed" | "possible" | "no" | "fainted" | "unknown";
       conditions: string[];
+      applied: string[];
+      immunity: "types" | "effects" | null;
     };
-function staged(stat: number, stage: number): number {
-  return Math.max(
-    1,
-    Math.floor(stat * (stage >= 0 ? (2 + stage) / 2 : 2 / (2 - stage))),
-  );
-}
-// Redondeo Pokémon: los empates exactos en .5 se redondean hacia abajo.
-const pokeRound = (value: number) => Math.ceil(value - 0.5);
-function conditions(a: Pokemon, d: Pokemon): string[] {
-  return (
-    [
-      ["atacante", a],
-      ["defensor", d],
-    ] as const
-  ).flatMap(([side, p]) =>
-    (["ability", "item"] as const).flatMap((key) => {
-      const state = key === "ability" ? p.abilityState : p.itemState;
-      return state === "none"
-        ? []
-        : [
-            `${key === "ability" ? "Habilidad" : "Objeto"} ${side}: ${state === "unknown" ? "desconocido; se omiten sus posibles efectos" : `${p[key]} indicado, pero su efecto no se aplica`}.`,
-          ];
-    }),
-  );
-}
 export function predictDamage(a: Pokemon, d: Pokemon, m: Move): DamageResult {
   const reasons: string[] = [];
   if (m.category === "Estado" || m.powerMode === "status")
@@ -77,9 +56,47 @@ export function predictDamage(a: Pokemon, d: Pokemon, m: Move): DamageResult {
     reasons.push("Potencia fuera del alcance validado (1–250).");
   if (!completeTypes(d))
     reasons.push("Faltan los tipos completos y confirmados del defensor.");
+  const ae = resolveEffects(
+    a,
+    "damage",
+    "atacante",
+    m.type === "Fuego",
+    false,
+    m.category === "Físico",
+  );
+  const de = resolveEffects(
+    d,
+    "damage",
+    "defensor",
+    false,
+    false,
+    m.category === "Físico",
+  );
+  reasons.push(...ae.missing, ...de.missing);
+  const ignored = ae.ability === "Mold Breaker" && de.item !== "Ability Shield";
   const eff = effectiveness(m.type, d.types, completeTypes(d));
   // Una inmunidad en este escenario no depende de ataque, defensa, nivel ni STAB.
-  if (!reasons.length && eff === 0) return finish([0], a, d);
+  if (!reasons.length) {
+    try {
+      const early = engineDamage(a, d, m, ae, de);
+      if (early.every((n) => n === 0)) return finish(early, a, d, eff, ae, de);
+    } catch {
+      /* La validación siguiente enumera las dependencias reales. */
+    }
+  }
+  if (
+    de.ability === "Multiscale" &&
+    !ignored &&
+    (d.hp === null || d.maxHp === null)
+  )
+    reasons.push("Multiescamas necesita PS actuales y máximos del defensor.");
+  if (
+    m.category === "Físico" &&
+    ae.ability === "Guts" &&
+    a.burn !== "burned" &&
+    a.paralysis === "unknown"
+  )
+    reasons.push("Agallas necesita confirmar parálisis del atacante.");
   if (!completeTypes(a))
     reasons.push(
       "Faltan los tipos completos y confirmados del atacante (STAB).",
@@ -101,38 +118,47 @@ export function predictDamage(a: Pokemon, d: Pokemon, m: Move): DamageResult {
         reasons.push(
           `${label} real del ${side} fuera del alcance validado (1–999).`,
         );
-      if (p.stages[key] === null)
+      const ignoreStage =
+        side === "atacante"
+          ? de.ability === "Unaware" && !ignored
+          : ae.ability === "Unaware";
+      if (!ignoreStage && p.stages[key] === null)
         reasons.push(`Falta la etapa de ${label} del ${side}.`);
     }
   if (physical && a.burn === "unknown")
     reasons.push("Falta confirmar el estado de quemadura del atacante.");
   if (reasons.length) return { ok: false, reasons };
-  const attack = staged(a[atk]!, a.stages[atk]!);
-  const defense = staged(d[def]!, d.stages[def]!);
-  const base =
-    Math.floor(
-      Math.floor(
-        ((Math.floor((2 * a.level!) / 5) + 2) * m.power! * attack) / defense,
-      ) / 50,
-    ) + 2;
-  const hasSTAB = a.types.includes(m.type as Type);
-  const rolls = Array.from({ length: 16 }, (_, i) => {
-    let n = Math.floor((base * (85 + i)) / 100);
-    if (hasSTAB) n = pokeRound(n * 1.5);
-    n = Math.floor(n * eff!);
-    if (physical && a.burn === "burned") n = Math.floor(n / 2);
-    return Math.max(1, n);
-  });
-  if (base > 65535 || rolls.some((n) => n > 65535))
+  try {
+    const rolls = engineDamage(a, d, m, ae, de);
+    if (
+      !rolls.length ||
+      rolls.some((n) => !Number.isFinite(n) || n < 0 || n > 65535)
+    )
+      return {
+        ok: false,
+        reasons: [
+          "El motor necesita datos o mecánicas adicionales fuera del alcance; no se sustituyen por valores ficticios.",
+        ],
+      };
+    return finish(rolls, a, d, eff, ae, de);
+  } catch {
     return {
       ok: false,
       reasons: [
-        "Resultado fuera del alcance numérico validado; no se simulan desbordamientos internos del juego.",
+        "Interacción no compatible con el adaptador de estadísticas manuales.",
       ],
     };
-  return finish(rolls, a, d);
+  }
 }
-function finish(rolls: number[], a: Pokemon, d: Pokemon): DamageResult {
+
+function finish(
+  rolls: number[],
+  a: Pokemon,
+  d: Pokemon,
+  eff: number | null,
+  ae: ReturnType<typeof resolveEffects>,
+  de: ReturnType<typeof resolveEffects>,
+): DamageResult {
   const min = Math.min(...rolls),
     max = Math.max(...rolls);
   return {
@@ -152,6 +178,28 @@ function finish(rolls: number[], a: Pokemon, d: Pokemon): DamageResult {
             : max >= d.hp
               ? "possible"
               : "no",
-    conditions: conditions(a, d),
+    conditions: [...ae.conditions, ...de.conditions],
+    applied: [
+      ...ae.notes,
+      ...de.notes,
+      ...[
+        [a, ae],
+        [d, de],
+      ].flatMap(([p, e]) => {
+        const mon = p as Pokemon;
+        const effects = e as typeof ae;
+        return [
+          ...(effects.ability
+            ? [
+                `${mon.ability}: habilidad compatible contemplada${effects.abilityOn ? " (activación confirmada)" : ""}.`,
+              ]
+            : []),
+          ...(effects.item
+            ? [`${mon.item}: objeto compatible activo contemplado.`]
+            : []),
+        ];
+      }),
+    ],
+    immunity: min === 0 && max === 0 ? (eff === 0 ? "types" : "effects") : null,
   };
 }

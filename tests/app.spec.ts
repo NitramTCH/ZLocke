@@ -73,7 +73,7 @@ test("búsqueda, selección y ajustes manuales sin inventar sets", async ({
     ),
   ).toBe(true);
 });
-test("migra localStorage y JSON antiguo, respalda y exporta versión 3", async ({
+test("migra localStorage y JSON antiguo, respalda y exporta versión 4", async ({
   page,
 }) => {
   await page.addInitScript(
@@ -88,7 +88,7 @@ test("migra localStorage y JSON antiguo, respalda y exporta versión 3", async (
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("zlocke-session-v1")!).version,
     ),
-  ).toBe(3);
+  ).toBe(4);
   expect(
     await page.evaluate(
       () =>
@@ -109,7 +109,7 @@ test("migra localStorage y JSON antiguo, respalda y exporta versión 3", async (
   let text = "";
   for await (const chunk of stream!) text += chunk.toString();
   expect(JSON.parse(text).team[0].secondType).toBe("none");
-  expect(JSON.parse(text).version).toBe(3);
+  expect(JSON.parse(text).version).toBe(4);
   page.on("dialog", (d) => d.accept());
   await page.locator("input[type=file]").setInputFiles({
     name: "legacy.json",
@@ -239,7 +239,7 @@ test("migración v2 con respaldo específico y sin inventar estados", async ({
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("zlocke-session-v1")!).version,
     ),
-  ).toBe(3);
+  ).toBe(4);
   expect(
     await page.evaluate(() => localStorage.getItem("zlocke-session-v1-backup")),
   ).toBe("respaldo anterior");
@@ -259,4 +259,195 @@ test("migración v2 con respaldo específico y sin inventar estados", async ({
   await expect(page.getByTestId("damage-result").first()).toContainText(
     "No calculable",
   );
+});
+
+test("buscadores de efectos, inmunidad, anulación, activación y persistencia", async ({
+  page,
+}) => {
+  const { default: fixture } = await import(
+    "./fixtures/session-v3-damage.json",
+    { with: { type: "json" } }
+  );
+  await page.goto("/");
+  await page.evaluate(
+    (s) => localStorage.setItem("zlocke-session-v1", JSON.stringify(s)),
+    fixture,
+  );
+  await page.reload();
+  await page.locator(".effect-editor > summary").first().click();
+  const abilitySearch = page.getByRole("combobox", {
+    name: "Tu Pokémon: buscar habilidad",
+    exact: true,
+  });
+  await abilitySearch.fill("levitacion");
+  await page
+    .getByRole("option", { name: "Levitación #26", exact: true })
+    .click();
+  await page
+    .locator('.editor[aria-label="Rival"] .move-editor > summary')
+    .first()
+    .click();
+  await page
+    .getByLabel("Rival movimiento 1 tipo", { exact: true })
+    .selectOption("Tierra");
+  const incoming = page.getByTestId("damage-result").nth(4);
+  await expect(incoming).toContainText("0–0 PS");
+  await expect(incoming).toContainText("Inmunidad por habilidad/objeto");
+  await page.locator(".effect-editor > summary").nth(1).click();
+  await page
+    .getByRole("combobox", { name: "Rival: buscar habilidad", exact: true })
+    .fill("rompemoldes");
+  await page
+    .getByRole("option", { name: "Rompemoldes #104", exact: true })
+    .click();
+  await expect(incoming).not.toContainText("0–0 PS");
+  await page
+    .getByRole("combobox", { name: "Tu Pokémon: buscar objeto", exact: true })
+    .fill("escudo habilidad");
+  await page
+    .getByRole("option", { name: "Escudo Habilidad #1697", exact: true })
+    .click();
+  await expect(incoming).toContainText("No calculable");
+  await page
+    .getByLabel("Tu Pokémon activación objeto", { exact: true })
+    .selectOption("active");
+  await expect(incoming).toContainText("0–0 PS");
+  await page.reload();
+  await expect(page.getByTestId("damage-result").nth(4)).toContainText(
+    "0–0 PS",
+  );
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("zlocke-session-v1")!).team[0]
+          .abilityId,
+    ),
+  ).toBe(26);
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("zlocke-session-v1")!).team[0].itemId,
+    ),
+  ).toBe(1697);
+  await page.locator(".effect-editor > summary").first().click();
+  await page
+    .getByLabel("Tu Pokémon habilidad manual", { exact: true })
+    .fill("Aura del fangame");
+  await expect(page.getByTestId("damage-result").nth(4)).toContainText(
+    "Aura del fangame no implementado",
+  );
+  await expect(
+    page.getByLabel("Tu Pokémon PS actuales", { exact: true }),
+  ).toHaveValue(String(fixture.team[0].hp));
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("velocidad con Pañuelo, etapas y parálisis, sin duplicar la ficha", async ({
+  page,
+}) => {
+  const { default: fixture } = await import(
+    "./fixtures/session-v3-damage.json",
+    { with: { type: "json" } }
+  );
+  await page.goto("/");
+  await page.evaluate(
+    (s) => localStorage.setItem("zlocke-session-v1", JSON.stringify(s)),
+    fixture,
+  );
+  await page.reload();
+  await page.locator(".effect-editor > summary").first().click();
+  await page
+    .getByRole("combobox", { name: "Tu Pokémon: buscar objeto", exact: true })
+    .fill("panuelo eleccion");
+  await page
+    .getByRole("option", { name: "Pañuelo Elección #264", exact: true })
+    .click();
+  await page
+    .getByLabel("Tu Pokémon activación objeto", { exact: true })
+    .selectOption("active");
+  await page.locator(".battle-conditions > summary").first().click();
+  await page
+    .getByLabel("Tu Pokémon parálisis", { exact: true })
+    .selectOption("none");
+  const speed = page
+    .getByRole("heading", { name: "Velocidad efectiva", exact: true })
+    .locator("..");
+  await expect(speed.locator(".damage-range").first()).toHaveText("144");
+  await page
+    .getByLabel("Tu Pokémon etapa speed", { exact: true })
+    .selectOption("1");
+  await expect(speed.locator(".damage-range").first()).toHaveText("216");
+  await page
+    .getByLabel("Tu Pokémon parálisis", { exact: true })
+    .selectOption("paralyzed");
+  await expect(speed.locator(".damage-range").first()).toHaveText("108");
+  await expect(
+    page.getByLabel("Tu Pokémon Velocidad real", { exact: true }),
+  ).toHaveValue("96");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("exportación/importación v4 conserva efectos y respaldo de v3", async ({
+  page,
+}) => {
+  const { default: fixture } = await import(
+    "./fixtures/session-v3-damage.json",
+    { with: { type: "json" } }
+  );
+  await page.goto("/");
+  await page.evaluate(
+    (s) => localStorage.setItem("zlocke-session-v1", JSON.stringify(s)),
+    fixture,
+  );
+  await page.reload();
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("zlocke-session-v1-backup-v3")!)
+          .version,
+    ),
+  ).toBe(3);
+  await page.locator(".effect-editor > summary").first().click();
+  await page
+    .getByRole("combobox", {
+      name: "Tu Pokémon: buscar habilidad",
+      exact: true,
+    })
+    .fill("potencia");
+  await page.getByRole("option", { name: "Potencia #37", exact: true }).click();
+  const wait = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Exportar JSON/ }).click();
+  const download = await wait,
+    stream = await download.createReadStream();
+  let data = "";
+  for await (const chunk of stream!) data += chunk.toString();
+  expect(JSON.parse(data).team[0].abilityId).toBe(37);
+  expect(JSON.parse(data).version).toBe(4);
+  await page
+    .getByLabel("Tu Pokémon habilidad manual", { exact: true })
+    .fill("Fangame");
+  page.on("dialog", (d) => d.accept());
+  await page
+    .locator("input[type=file]")
+    .setInputFiles({
+      name: "efectos.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(data),
+    });
+  await expect(page.getByRole("status")).toContainText("Partida importada");
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("zlocke-session-v1")!).team[0]
+          .abilityId,
+    ),
+  ).toBe(37);
 });
